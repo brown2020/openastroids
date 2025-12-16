@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## OpenAstroids
+
+OpenAstroids is a modern, open-source remake of the classic **Asteroids** arcade game — built with **Next.js + TypeScript** and a lightweight **Canvas** renderer.
 
 ## Getting Started
 
@@ -14,11 +16,25 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` with your browser to play.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Controls (Desktop)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Rotate**: `A/D` or `←/→`
+- **Thrust**: `W` or `↑`
+- **Fire**: `Space`
+- **Hyperspace**: `Shift`
+- **Pause**: `P`
+- **Start**: `Enter`
+
+## Controls (Touch)
+
+Use the on-screen buttons for rotate, thrust, fire, and hyperspace.
+
+## Dev Notes
+
+- Game logic lives in `src/lib/openastroids/*` (pure TypeScript).
+- UI lives in `src/app/page.tsx` (single client canvas).
 
 ## Learn More
 
