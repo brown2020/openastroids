@@ -36,6 +36,12 @@ Use the on-screen buttons for rotate, thrust, fire, and hyperspace.
 - Game logic lives in `src/lib/openastroids/*` (pure TypeScript).
 - UI lives in `src/app/page.tsx` (single client canvas).
 
+## License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See `LICENSE.md`.
+
+> AGPL note: if you run a modified version of this project and make it available to users over a network, you must also offer the complete corresponding source to those users (see AGPLv3 §13).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
