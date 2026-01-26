@@ -1,8 +1,16 @@
 import type { Vec2 } from "./types";
 
+/** Full circle in radians (2π) - prefer over Math.PI * 2 for clarity */
 export const TAU = Math.PI * 2;
 
-export function clamp(value: number, min: number, max: number) {
+/**
+ * Clamps a value between minimum and maximum bounds.
+ * @param value - The value to clamp
+ * @param min - Minimum allowed value
+ * @param max - Maximum allowed value
+ * @returns Clamped value in range [min, max]
+ */
+export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
@@ -32,6 +40,14 @@ export function fromAngle(angleRad: number): Vec2 {
   return { x: Math.cos(angleRad), y: Math.sin(angleRad) };
 }
 
+/**
+ * Wraps a position to the opposite edge when it goes off-screen (toroidal topology).
+ * This creates the classic Asteroids "wrap-around" effect.
+ * @param pos - Current position
+ * @param width - Canvas width
+ * @param height - Canvas height
+ * @returns Position wrapped to stay within canvas bounds
+ */
 export function wrapPosition(pos: Vec2, width: number, height: number): Vec2 {
   let x = pos.x;
   let y = pos.y;

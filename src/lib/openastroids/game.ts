@@ -11,30 +11,62 @@ import type {
   Vec2,
 } from "./types";
 
+// Ship physics constants - tuned for classic Asteroids feel
+/** Ship collision radius in pixels */
 const SHIP_RADIUS = 14;
-const SHIP_TURN_RATE = 4.6; // rad/s
-const SHIP_THRUST = 520; // px/s^2
+/** Ship rotation speed in radians per second - allows ~1.37 full rotations/sec */
+const SHIP_TURN_RATE = 4.6;
+/** Ship thrust acceleration in pixels per second squared */
+const SHIP_THRUST = 520;
+/** Ship velocity decay per frame (0.985 = 1.5% friction) */
 const SHIP_FRICTION = 0.985;
+/** Maximum ship velocity in pixels per second */
 const SHIP_MAX_SPEED = 560;
 
+// Bullet physics constants
+/** Bullet velocity in pixels per second */
 const BULLET_SPEED = 820;
+/** Bullet collision radius in pixels */
 const BULLET_RADIUS = 2.5;
+/** Minimum time between shots in milliseconds */
 const BULLET_COOLDOWN_MS = 180;
+/** Bullet lifespan in milliseconds before disappearing */
 const BULLET_LIFETIME_MS = 900;
 
+// Asteroid physics constants
+/** Base speed for asteroids in pixels per second (smaller asteroids move faster) */
 const ASTEROID_BASE_SPEED = 70;
+/** Large asteroid collision radius in pixels */
 const ASTEROID_LARGE_RADIUS = 52;
+/** Medium asteroid collision radius in pixels */
 const ASTEROID_MED_RADIUS = 32;
+/** Small asteroid collision radius in pixels */
 const ASTEROID_SMALL_RADIUS = 18;
 
+// Gameplay constants
+/** Ship invincibility duration after spawning/respawning in milliseconds */
 const SHIP_INVINCIBLE_MS = 1400;
 
+// Scoring constants
+/** Points awarded for destroying a large asteroid */
 const SCORE_LARGE = 20;
+/** Points awarded for destroying a medium asteroid */
 const SCORE_MED = 50;
+/** Points awarded for destroying a small asteroid */
 const SCORE_SMALL = 100;
 
+/** Starting number of lives */
 const DEFAULT_LIVES = 3;
 
+/**
+ * Creates the initial game state with default values.
+ * @param opts - Configuration options for initializing the game
+ * @param opts.width - Canvas width in pixels
+ * @param opts.height - Canvas height in pixels
+ * @param opts.nowMs - Current timestamp in milliseconds
+ * @param opts.seed - Optional RNG seed for deterministic asteroid generation
+ * @returns A new game state ready to start
+ */
 export function createInitialState(opts: {
   width: number;
   height: number;
@@ -64,26 +96,64 @@ export function createInitialState(opts: {
   return state;
 }
 
+/**
+ * Updates game state when canvas is resized, ensuring ship stays in bounds.
+ * @param prev - Current game state
+ * @param width - New canvas width
+ * @param height - New canvas height
+ * @returns Updated game state with new dimensions
+ */
 export function resizeState(prev: GameState, width: number, height: number): GameState {
   if (prev.width === width && prev.height === height) return prev;
   return { ...prev, width, height, ship: { ...prev.ship, pos: wrapPosition(prev.ship.pos, width, height) } };
 }
 
+/**
+ * Transitions the game from ready/paused state to running state.
+ * @param prev - Current game state
+ * @param nowMs - Current timestamp
+ * @returns Game state with status set to "running"
+ */
 export function startGame(prev: GameState, nowMs: number): GameState {
   if (prev.status === "running") return prev;
   return { ...prev, status: "running", startedAtMs: nowMs, nowMs, lastFrameMs: nowMs };
 }
 
+/**
+ * Toggles game between running and paused states.
+ * @param prev - Current game state
+ * @returns Game state with toggled status
+ */
 export function togglePause(prev: GameState): GameState {
   if (prev.status === "running") return { ...prev, status: "paused" };
   if (prev.status === "paused") return { ...prev, status: "running" };
   return prev;
 }
 
+/**
+ * Resets the game to initial state, preserving canvas dimensions.
+ * @param prev - Current game state
+ * @param nowMs - Current timestamp
+ * @param seed - Optional RNG seed for deterministic generation
+ * @returns Fresh game state
+ */
 export function resetGame(prev: GameState, nowMs: number, seed?: number): GameState {
   return createInitialState({ width: prev.width, height: prev.height, nowMs, seed });
 }
 
+/**
+ * Advances the game simulation by one frame, handling all game logic:
+ * - Physics integration (ship, bullets, asteroids)
+ * - Collision detection (bullets vs asteroids, ship vs asteroids)
+ * - Game state transitions (level advancement, game over)
+ * - Input processing (movement, firing, hyperspace)
+ *
+ * @param prev - Current game state
+ * @param input - Player input for this frame
+ * @param nowMs - Current timestamp in milliseconds
+ * @param seed - RNG seed for this frame (should be unique per frame)
+ * @returns Result containing new game state and event flags
+ */
 export function step(prev: GameState, input: InputState, nowMs: number, seed: number): StepResult {
   const rng = createRng(seed);
   if (prev.status !== "running") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createInitialState, resizeState, resetGame, startGame, step, togglePause } from "@/lib/openastroids/game";
 import { render } from "@/lib/openastroids/render";
 import type { GameState, InputState } from "@/lib/openastroids/types";
@@ -8,6 +8,7 @@ import { useOpenAstroidsStore } from "@/stores/openastroids-store";
 
 const EMPTY_INPUT: InputState = { isThrusting: false, rotateDir: 0, isFiring: false, isHyperspace: false };
 const HUD_UPDATE_INTERVAL_MS = 75;
+const GAME_KEYS = ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyD", "KeyP", "Enter", "ShiftLeft", "ShiftRight"];
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -21,11 +22,26 @@ export default function Home() {
   const hudLastUpdateMsRef = useRef(0);
 
   const { status, score, lives, level, isTouch, setHud, setIsTouch } = useOpenAstroidsStore();
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
     const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
     setIsTouch(isTouchDevice);
   }, [setIsTouch]);
+
+  // Monitor reduced motion preference changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    motionQuery.addEventListener("change", handleChange);
+    return () => motionQuery.removeEventListener("change", handleChange);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -80,7 +96,7 @@ export default function Home() {
       const { next } = step(game, input, nowMs, seed);
       gameRef.current = next;
 
-      render(ctxNow, next, { isCrt: true });
+      render(ctxNow, next, { isCrt: !prefersReducedMotion });
 
       if (nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
         hudLastUpdateMsRef.current = nowMs;
@@ -96,7 +112,7 @@ export default function Home() {
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [setHud]);
+  }, [prefersReducedMotion, setHud]);
 
   const updateHud = useCallback(() => {
     const g = gameRef.current;
@@ -104,8 +120,25 @@ export default function Home() {
     setHud({ status: g.status, score: g.score, lives: g.lives, level: g.level });
   }, [setHud]);
 
+  // Auto-pause when tab becomes hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && gameRef.current?.status === "running") {
+        gameRef.current = togglePause(gameRef.current);
+        updateHud();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [updateHud]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Prevent default for game keys to avoid page scrolling
+      if (GAME_KEYS.includes(e.code)) {
+        e.preventDefault();
+      }
+
       if (e.code === "ArrowLeft" || e.code === "KeyA") inputRef.current.rotateDir = -1;
       if (e.code === "ArrowRight" || e.code === "KeyD") inputRef.current.rotateDir = 1;
       if (e.code === "ArrowUp" || e.code === "KeyW") inputRef.current.isThrusting = true;
@@ -134,8 +167,8 @@ export default function Home() {
       if (e.code === "ArrowUp" || e.code === "KeyW") inputRef.current.isThrusting = false;
       if (e.code === "Space") inputRef.current.isFiring = false;
     };
-    window.addEventListener("keydown", onKeyDown, { passive: true });
-    window.addEventListener("keyup", onKeyUp, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
@@ -166,6 +199,38 @@ export default function Home() {
     gameRef.current = resetGame(g, performance.now(), seedRef.current);
     updateHud();
   };
+
+  const handleRotateLeft = useCallback(() => {
+    inputRef.current = { ...inputRef.current, rotateDir: -1 };
+  }, []);
+
+  const handleRotateRight = useCallback(() => {
+    inputRef.current = { ...inputRef.current, rotateDir: 1 };
+  }, []);
+
+  const handleRotateStop = useCallback(() => {
+    inputRef.current = { ...inputRef.current, rotateDir: 0 };
+  }, []);
+
+  const handleThrustStart = useCallback(() => {
+    inputRef.current = { ...inputRef.current, isThrusting: true };
+  }, []);
+
+  const handleThrustStop = useCallback(() => {
+    inputRef.current = { ...inputRef.current, isThrusting: false };
+  }, []);
+
+  const handleFireStart = useCallback(() => {
+    inputRef.current = { ...inputRef.current, isFiring: true };
+  }, []);
+
+  const handleFireStop = useCallback(() => {
+    inputRef.current = { ...inputRef.current, isFiring: false };
+  }, []);
+
+  const handleHyperspace = useCallback(() => {
+    queuedHyperspaceRef.current = true;
+  }, []);
 
   return (
     <div className="relative h-dvh w-screen overflow-hidden bg-black text-emerald-50">
@@ -205,12 +270,14 @@ export default function Home() {
 
       {isTouch ? (
         <TouchControls
-          setInput={(next) => {
-            inputRef.current = { ...inputRef.current, ...next };
-          }}
-          queueHyperspace={() => {
-            queuedHyperspaceRef.current = true;
-          }}
+          onRotateLeft={handleRotateLeft}
+          onRotateRight={handleRotateRight}
+          onRotateStop={handleRotateStop}
+          onThrustStart={handleThrustStart}
+          onThrustStop={handleThrustStop}
+          onFireStart={handleFireStart}
+          onFireStop={handleFireStop}
+          onHyperspace={handleHyperspace}
         />
       ) : (
         <DesktopControlsHint />
@@ -248,49 +315,53 @@ function DesktopControlsHint() {
   );
 }
 
-function TouchControls(props: { setInput: (next: Partial<InputState>) => void; queueHyperspace: () => void }) {
+type TouchControlsProps = {
+  onRotateLeft: () => void;
+  onRotateRight: () => void;
+  onRotateStop: () => void;
+  onThrustStart: () => void;
+  onThrustStop: () => void;
+  onFireStart: () => void;
+  onFireStop: () => void;
+  onHyperspace: () => void;
+};
+
+const TouchControls = memo(function TouchControls(props: TouchControlsProps) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-3 p-4">
       <div className="flex gap-2">
-        <HoldButton
-          label="⟲"
-          onDown={() => props.setInput({ rotateDir: -1 })}
-          onUp={() => props.setInput({ rotateDir: 0 })}
-        />
-        <HoldButton
-          label="⟳"
-          onDown={() => props.setInput({ rotateDir: 1 })}
-          onUp={() => props.setInput({ rotateDir: 0 })}
-        />
+        <HoldButton label="⟲" ariaLabel="Rotate left" onDown={props.onRotateLeft} onUp={props.onRotateStop} />
+        <HoldButton label="⟳" ariaLabel="Rotate right" onDown={props.onRotateRight} onUp={props.onRotateStop} />
       </div>
 
       <div className="flex gap-2">
-        <HoldButton label="THRUST" onDown={() => props.setInput({ isThrusting: true })} onUp={() => props.setInput({ isThrusting: false })} />
-        <HoldButton label="FIRE" onDown={() => props.setInput({ isFiring: true })} onUp={() => props.setInput({ isFiring: false })} />
-        <TapButton label="JUMP" onTap={props.queueHyperspace} />
+        <HoldButton label="THRUST" ariaLabel="Thrust forward" onDown={props.onThrustStart} onUp={props.onThrustStop} />
+        <HoldButton label="FIRE" ariaLabel="Fire weapon" onDown={props.onFireStart} onUp={props.onFireStop} />
+        <TapButton label="JUMP" ariaLabel="Hyperspace jump" onTap={props.onHyperspace} />
       </div>
     </div>
   );
-}
+});
 
-function GameButton(props: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+const GameButton = memo(function GameButton(props: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
-      className="select-none rounded-full border border-emerald-200/20 bg-black/40 px-4 py-2 text-sm text-emerald-50 backdrop-blur transition hover:bg-black/60 disabled:opacity-50"
+      className="select-none rounded-full border border-emerald-200/20 bg-black/40 px-4 py-2 text-sm text-emerald-50 backdrop-blur transition hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 disabled:opacity-50"
     >
       {props.children}
     </button>
   );
-}
+});
 
-function HoldButton(props: { label: string; onDown: () => void; onUp: () => void }) {
+const HoldButton = memo(function HoldButton(props: { label: string; ariaLabel: string; onDown: () => void; onUp: () => void }) {
   return (
     <button
       type="button"
-      className="select-none rounded-xl border border-emerald-200/20 bg-black/40 px-4 py-3 text-sm text-emerald-50 backdrop-blur active:bg-black/70"
+      aria-label={props.ariaLabel}
+      className="select-none rounded-xl border border-emerald-200/20 bg-black/40 px-4 py-3 text-sm text-emerald-50 backdrop-blur active:bg-black/70 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
         props.onDown();
@@ -301,13 +372,14 @@ function HoldButton(props: { label: string; onDown: () => void; onUp: () => void
       {props.label}
     </button>
   );
-}
+});
 
-function TapButton(props: { label: string; onTap: () => void }) {
+const TapButton = memo(function TapButton(props: { label: string; ariaLabel: string; onTap: () => void }) {
   return (
     <button
       type="button"
-      className="select-none rounded-xl border border-emerald-200/20 bg-black/40 px-4 py-3 text-sm text-emerald-50 backdrop-blur active:bg-black/70"
+      aria-label={props.ariaLabel}
+      className="select-none rounded-xl border border-emerald-200/20 bg-black/40 px-4 py-3 text-sm text-emerald-50 backdrop-blur active:bg-black/70 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
         props.onTap();
@@ -316,4 +388,4 @@ function TapButton(props: { label: string; onTap: () => void }) {
       {props.label}
     </button>
   );
-}
+});
