@@ -15,5 +15,3 @@ export function createRng(seed: number): Rng {
 export function id(rng: Rng) {
   return Math.floor(rng() * 1e9).toString(36);
 }
-
-

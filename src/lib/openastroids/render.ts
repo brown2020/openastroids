@@ -138,5 +138,3 @@ function drawCrtOverlay(ctx: CanvasRenderingContext2D, width: number, height: nu
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, width, height);
 }
-
-

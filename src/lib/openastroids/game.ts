@@ -369,5 +369,3 @@ function nudgeVelocity(a: Asteroid, parentVel: Vec2, rng: Rng): Asteroid {
   const kick = mul(fromAngle(randBetween(rng, 0, TAU)), randBetween(rng, 30, 120));
   return { ...a, vel: add(parentVel, add(a.vel, kick)) };
 }
-
-

@@ -49,5 +49,3 @@ export function dist(a: Vec2, b: Vec2) {
 export function randBetween(rng: () => number, min: number, max: number) {
   return min + (max - min) * rng();
 }
-
-

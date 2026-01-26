@@ -19,5 +19,3 @@ export const useOpenAstroidsStore = create<HudState>((set) => ({
   setHud: (next) => set(next),
   setIsTouch: (isTouch) => set({ isTouch }),
 }));
-
-

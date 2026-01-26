@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createInitialState, resizeState, resetGame, startGame, step, togglePause } from "@/lib/openastroids/game";
 import { render } from "@/lib/openastroids/render";
 import type { GameState, InputState } from "@/lib/openastroids/types";
 import { useOpenAstroidsStore } from "@/stores/openastroids-store";
 
 const EMPTY_INPUT: InputState = { isThrusting: false, rotateDir: 0, isFiring: false, isHyperspace: false };
+const HUD_UPDATE_INTERVAL_MS = 75;
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -19,22 +20,12 @@ export default function Home() {
   const seedRef = useRef<number>(0);
   const hudLastUpdateMsRef = useRef(0);
 
-  const setHud = useOpenAstroidsStore((s) => s.setHud);
-  const setIsTouch = useOpenAstroidsStore((s) => s.setIsTouch);
-  const status = useOpenAstroidsStore((s) => s.status);
-  const score = useOpenAstroidsStore((s) => s.score);
-  const lives = useOpenAstroidsStore((s) => s.lives);
-  const level = useOpenAstroidsStore((s) => s.level);
-  const isTouch = useOpenAstroidsStore((s) => s.isTouch);
-
-  const isTouchDevice = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  }, []);
+  const { status, score, lives, level, isTouch, setHud, setIsTouch } = useOpenAstroidsStore();
 
   useEffect(() => {
+    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
     setIsTouch(isTouchDevice);
-  }, [isTouchDevice, setIsTouch]);
+  }, [setIsTouch]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -91,7 +82,7 @@ export default function Home() {
 
       render(ctxNow, next, { isCrt: true });
 
-      if (nowMs - hudLastUpdateMsRef.current > 75) {
+      if (nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
         hudLastUpdateMsRef.current = nowMs;
         setHud({ status: next.status, score: next.score, lives: next.lives, level: next.level });
       }
@@ -107,6 +98,12 @@ export default function Home() {
     };
   }, [setHud]);
 
+  const updateHud = useCallback(() => {
+    const g = gameRef.current;
+    if (!g) return;
+    setHud({ status: g.status, score: g.score, lives: g.lives, level: g.level });
+  }, [setHud]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "ArrowLeft" || e.code === "KeyA") inputRef.current.rotateDir = -1;
@@ -118,13 +115,13 @@ export default function Home() {
         const g = gameRef.current;
         if (!g) return;
         gameRef.current = togglePause(g);
-        setHud({ status: gameRef.current.status, score: gameRef.current.score, lives: gameRef.current.lives, level: gameRef.current.level });
+        updateHud();
       }
       if (e.code === "Enter") {
         const g = gameRef.current;
         if (!g) return;
         gameRef.current = startGame(g, performance.now());
-        setHud({ status: gameRef.current.status, score: gameRef.current.score, lives: gameRef.current.lives, level: gameRef.current.level });
+        updateHud();
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
@@ -143,20 +140,20 @@ export default function Home() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [setHud]);
+  }, [updateHud]);
 
   const doStart = () => {
     const g = gameRef.current;
     if (!g) return;
     gameRef.current = startGame(g, performance.now());
-    setHud({ status: gameRef.current.status, score: gameRef.current.score, lives: gameRef.current.lives, level: gameRef.current.level });
+    updateHud();
   };
 
   const doPause = () => {
     const g = gameRef.current;
     if (!g) return;
     gameRef.current = togglePause(g);
-    setHud({ status: gameRef.current.status, score: gameRef.current.score, lives: gameRef.current.lives, level: gameRef.current.level });
+    updateHud();
   };
 
   const doRestart = () => {
@@ -167,7 +164,7 @@ export default function Home() {
     seedRef.current = buf[0] ?? 1;
     frameRef.current = 0;
     gameRef.current = resetGame(g, performance.now(), seedRef.current);
-    setHud({ status: gameRef.current.status, score: gameRef.current.score, lives: gameRef.current.lives, level: gameRef.current.level });
+    updateHud();
   };
 
   return (
@@ -175,8 +172,6 @@ export default function Home() {
       <div className="absolute inset-0">
         <canvas ref={canvasRef} className="h-full w-full touch-none" aria-label="OpenAstroids game canvas" />
       </div>
-
-      <HudOverlay />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 p-4">
         <div className="pointer-events-auto rounded-lg border border-emerald-200/20 bg-black/40 px-3 py-2 backdrop-blur">
@@ -239,11 +234,6 @@ export default function Home() {
       ) : null}
     </div>
   );
-}
-
-function HudOverlay() {
-  // Placeholder component to keep future HUD additions isolated without forcing extra rerenders in Home.
-  return null;
 }
 
 function DesktopControlsHint() {
