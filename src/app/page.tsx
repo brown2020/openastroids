@@ -7,8 +7,15 @@ import type { GameState, InputState } from "@/lib/openastroids/types";
 import { useOpenAstroidsStore } from "@/stores/openastroids-store";
 
 const EMPTY_INPUT: InputState = { isThrusting: false, rotateDir: 0, isFiring: false, isHyperspace: false };
+
+// HUD updates at ~13fps to reduce React re-renders while maintaining responsive feel
 const HUD_UPDATE_INTERVAL_MS = 75;
+
+// All keys that should prevent default browser behavior (e.g., page scroll)
 const GAME_KEYS = ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyD", "KeyP", "Enter", "ShiftLeft", "ShiftRight"];
+
+// 4:3 aspect ratio fallback if parent element is unavailable
+const FALLBACK_CANVAS_SIZE = { w: 800, h: 600 };
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -59,13 +66,15 @@ export default function Home() {
 
     const measure = () => {
       const parent = canvas.parentElement;
-      if (!parent) return { w: 800, h: 600 };
+      if (!parent) return FALLBACK_CANVAS_SIZE;
       const rect = parent.getBoundingClientRect();
       return { w: Math.max(1, Math.floor(rect.width)), h: Math.max(1, Math.floor(rect.height)) };
     };
 
     const syncSize = () => {
       const { w, h } = measure();
+      // Cap DPR at 2.5x for performance; higher values rarely improve visual quality
+      // but significantly increase canvas memory and render time
       const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
@@ -96,9 +105,16 @@ export default function Home() {
       const { next } = step(game, input, nowMs, seed);
       gameRef.current = next;
 
+      // Clear queued hyperspace when game is not running (prevents unexpected teleport on resume)
+      if (next.status !== "running") {
+        queuedHyperspaceRef.current = false;
+      }
+
       render(ctxNow, next, { isCrt: !prefersReducedMotion });
 
-      if (nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
+      // Force immediate HUD sync on game over to ensure final score is displayed
+      const isGameOver = next.status === "gameover" && game.status !== "gameover";
+      if (isGameOver || nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
         hudLastUpdateMsRef.current = nowMs;
         setHud({ status: next.status, score: next.score, lives: next.lives, level: next.level });
       }
@@ -200,37 +216,15 @@ export default function Home() {
     updateHud();
   };
 
-  const handleRotateLeft = useCallback(() => {
-    inputRef.current = { ...inputRef.current, rotateDir: -1 };
-  }, []);
-
-  const handleRotateRight = useCallback(() => {
-    inputRef.current = { ...inputRef.current, rotateDir: 1 };
-  }, []);
-
-  const handleRotateStop = useCallback(() => {
-    inputRef.current = { ...inputRef.current, rotateDir: 0 };
-  }, []);
-
-  const handleThrustStart = useCallback(() => {
-    inputRef.current = { ...inputRef.current, isThrusting: true };
-  }, []);
-
-  const handleThrustStop = useCallback(() => {
-    inputRef.current = { ...inputRef.current, isThrusting: false };
-  }, []);
-
-  const handleFireStart = useCallback(() => {
-    inputRef.current = { ...inputRef.current, isFiring: true };
-  }, []);
-
-  const handleFireStop = useCallback(() => {
-    inputRef.current = { ...inputRef.current, isFiring: false };
-  }, []);
-
-  const handleHyperspace = useCallback(() => {
-    queuedHyperspaceRef.current = true;
-  }, []);
+  // Touch handlers use direct mutation for better performance (no object allocation)
+  const handleRotateLeft = useCallback(() => { inputRef.current.rotateDir = -1; }, []);
+  const handleRotateRight = useCallback(() => { inputRef.current.rotateDir = 1; }, []);
+  const handleRotateStop = useCallback(() => { inputRef.current.rotateDir = 0; }, []);
+  const handleThrustStart = useCallback(() => { inputRef.current.isThrusting = true; }, []);
+  const handleThrustStop = useCallback(() => { inputRef.current.isThrusting = false; }, []);
+  const handleFireStart = useCallback(() => { inputRef.current.isFiring = true; }, []);
+  const handleFireStop = useCallback(() => { inputRef.current.isFiring = false; }, []);
+  const handleHyperspace = useCallback(() => { queuedHyperspaceRef.current = true; }, []);
 
   return (
     <div className="relative h-dvh w-screen overflow-hidden bg-black text-emerald-50">
@@ -283,6 +277,37 @@ export default function Home() {
         <DesktopControlsHint />
       )}
 
+      {status === "ready" ? (
+        <div className="absolute inset-0 z-30 grid place-items-center bg-black/40 p-6">
+          <div className="max-w-md rounded-xl border border-emerald-200/20 bg-black/60 p-6 text-center backdrop-blur">
+            <div className="text-2xl font-semibold tracking-wide">OPENASTROIDS</div>
+            <p className="mt-2 text-sm text-emerald-100/80">
+              Destroy asteroids. Survive. Set a high score.
+            </p>
+
+            <div className="mt-6 text-left text-xs text-emerald-100/70">
+              <div className="font-medium text-emerald-100/90 mb-2">Controls</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div><span className="text-emerald-100">A/D</span> or <span className="text-emerald-100">←/→</span></div>
+                <div>Rotate</div>
+                <div><span className="text-emerald-100">W</span> or <span className="text-emerald-100">↑</span></div>
+                <div>Thrust</div>
+                <div><span className="text-emerald-100">Space</span></div>
+                <div>Fire</div>
+                <div><span className="text-emerald-100">Shift</span></div>
+                <div>Hyperspace (risky!)</div>
+                <div><span className="text-emerald-100">P</span></div>
+                <div>Pause</div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-2">
+              <GameButton onClick={doStart} autoFocus>Press Enter or Click to Start</GameButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {status === "gameover" ? (
         <div className="absolute inset-0 z-30 grid place-items-center bg-black/40 p-6">
           <div className="max-w-md rounded-xl border border-emerald-200/20 bg-black/60 p-6 text-center backdrop-blur">
@@ -291,7 +316,7 @@ export default function Home() {
               Final score: <span className="font-mono tabular-nums">{score}</span>
             </div>
             <div className="mt-4 flex items-center justify-center gap-2">
-              <GameButton onClick={doRestart}>Play again</GameButton>
+              <GameButton onClick={doRestart} autoFocus>Play again</GameButton>
             </div>
             <div className="mt-4 text-xs text-emerald-100/60">
               Tip: rotate with A/D (or ←/→), thrust with W (or ↑), shoot with Space, hyperspace with Shift, pause with P.
@@ -343,12 +368,13 @@ const TouchControls = memo(function TouchControls(props: TouchControlsProps) {
   );
 });
 
-const GameButton = memo(function GameButton(props: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+const GameButton = memo(function GameButton(props: { children: React.ReactNode; onClick: () => void; disabled?: boolean; autoFocus?: boolean }) {
   return (
     <button
       type="button"
       onClick={props.onClick}
       disabled={props.disabled}
+      autoFocus={props.autoFocus}
       className="select-none rounded-full border border-emerald-200/20 bg-black/40 px-4 py-2 text-sm text-emerald-50 backdrop-blur transition hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 disabled:opacity-50"
     >
       {props.children}

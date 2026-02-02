@@ -1,4 +1,5 @@
 import { TAU, add, fromAngle, mul } from "./math";
+import { createRng } from "./random";
 import type { Asteroid, GameState, Vec2 } from "./types";
 
 export type RenderOptions = {
@@ -103,17 +104,21 @@ function drawExplosion(ctx: CanvasRenderingContext2D, pos: Vec2, t01: number) {
   ctx.restore();
 }
 
+// Fixed seed for deterministic star generation (stars are decorative, don't need game seed)
+const STAR_SEED = 0xdeadbeef;
 let cachedStars: { w: number; h: number; stars: { x: number; y: number; a: number }[] } | null = null;
+
 function drawStars(ctx: CanvasRenderingContext2D, width: number, height: number) {
   if (!cachedStars || cachedStars.w !== width || cachedStars.h !== height) {
+    const rng = createRng(STAR_SEED);
     const count = Math.floor((width * height) / 12000);
     cachedStars = {
       w: width,
       h: height,
       stars: Array.from({ length: count }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        a: 0.2 + Math.random() * 0.7,
+        x: rng() * width,
+        y: rng() * height,
+        a: 0.2 + rng() * 0.7,
       })),
     };
   }
