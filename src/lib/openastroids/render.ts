@@ -76,7 +76,7 @@ function drawAsteroid(ctx: CanvasRenderingContext2D, a: Asteroid) {
   ctx.beginPath();
   for (let i = 0; i < vCount; i += 1) {
     const ang = a.angle + i * step;
-    const r = a.radius * a.shape[i]!;
+    const r = a.radius * (a.shape[i] ?? 1);
     const p = add(a.pos, mul(fromAngle(ang), r));
     if (i === 0) ctx.moveTo(p.x, p.y);
     else ctx.lineTo(p.x, p.y);

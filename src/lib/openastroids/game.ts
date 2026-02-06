@@ -363,19 +363,25 @@ function spawnAsteroids(opts: {
 }): Asteroid[] {
   const count = Math.min(4 + Math.floor(opts.level * 0.75), 12);
   const out: Asteroid[] = [];
+  const maxRetries = 50;
   for (let i = 0; i < count; i += 1) {
-    const a = createAsteroid({
-      rng: opts.rng,
-      width: opts.width,
-      height: opts.height,
-      size: 3,
-    });
-    // keep initial wave away from ship
-    if (dist(a.pos, opts.avoid) < 180) {
-      i -= 1;
-      continue;
+    let placed = false;
+    for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+      const a = createAsteroid({
+        rng: opts.rng,
+        width: opts.width,
+        height: opts.height,
+        size: 3,
+      });
+      if (dist(a.pos, opts.avoid) >= 180) {
+        out.push(a);
+        placed = true;
+        break;
+      }
     }
-    out.push(a);
+    if (!placed) {
+      out.push(createAsteroid({ rng: opts.rng, width: opts.width, height: opts.height, size: 3 }));
+    }
   }
   return out;
 }

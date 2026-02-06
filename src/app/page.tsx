@@ -30,20 +30,15 @@ export default function Home() {
 
   const { status, score, lives, level, isTouch, setHud, setIsTouch } = useOpenAstroidsStore();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    }
-    return false;
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
 
   useEffect(() => {
-    const isTouchDevice = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-    setIsTouch(isTouchDevice);
+    setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
   }, [setIsTouch]);
 
-  // Monitor reduced motion preference changes
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     motionQuery.addEventListener("change", handleChange);
@@ -168,7 +163,7 @@ export default function Home() {
       }
       if (e.code === "Enter") {
         const g = gameRef.current;
-        if (!g) return;
+        if (!g || g.status === "gameover") return;
         gameRef.current = startGame(g, performance.now());
         updateHud();
       }
@@ -191,21 +186,21 @@ export default function Home() {
     };
   }, [updateHud]);
 
-  const doStart = () => {
+  const doStart = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
     gameRef.current = startGame(g, performance.now());
     updateHud();
-  };
+  }, [updateHud]);
 
-  const doPause = () => {
+  const doPause = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
     gameRef.current = togglePause(g);
     updateHud();
-  };
+  }, [updateHud]);
 
-  const doRestart = () => {
+  const doRestart = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
     const buf = new Uint32Array(1);
@@ -214,7 +209,7 @@ export default function Home() {
     frameRef.current = 0;
     gameRef.current = resetGame(g, performance.now(), seedRef.current);
     updateHud();
-  };
+  }, [updateHud]);
 
   // Touch handlers use direct mutation for better performance (no object allocation)
   const handleRotateLeft = useCallback(() => { inputRef.current.rotateDir = -1; }, []);
@@ -255,8 +250,8 @@ export default function Home() {
           <GameButton onClick={doStart} disabled={status === "running" || status === "gameover"}>
             {status === "paused" ? "Resume" : "Start"}
           </GameButton>
-          <GameButton onClick={doPause} disabled={status === "ready" || status === "gameover"}>
-            {status === "paused" ? "Unpause" : "Pause"}
+          <GameButton onClick={doPause} disabled={status !== "running"}>
+            Pause
           </GameButton>
           <GameButton onClick={doRestart}>Restart</GameButton>
         </div>
