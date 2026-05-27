@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createInitialState, resizeState, resetGame, startGame, step, togglePause } from "@/lib/openastroids/game";
+import { maybeUpdateHighScore, readHighScore } from "@/lib/openastroids/high-score";
 import { render } from "@/lib/openastroids/render";
 import type { GameState, InputState } from "@/lib/openastroids/types";
 import { useOpenAstroidsStore } from "@/stores/openastroids-store";
@@ -36,11 +37,15 @@ export default function Home() {
   const hudLastUpdateMsRef = useRef(0);
   const prefersReducedMotionRef = useRef(false);
 
-  const { status, score, lives, level, isTouch, setHud, setIsTouch } = useOpenAstroidsStore();
+  const { status, score, lives, level, highScore, isTouch, setHud, setHighScore, setIsTouch } = useOpenAstroidsStore();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
+
+  useEffect(() => {
+    setHighScore(readHighScore());
+  }, [setHighScore]);
 
   useEffect(() => {
     setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
@@ -128,6 +133,9 @@ export default function Home() {
       if (isGameOver || nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
         hudLastUpdateMsRef.current = nowMs;
         setHud({ status: next.status, score: next.score, lives: next.lives, level: next.level });
+        if (isGameOver) {
+          setHighScore(maybeUpdateHighScore(next.score));
+        }
       }
 
       rafRef.current = window.requestAnimationFrame(tick);
@@ -139,7 +147,7 @@ export default function Home() {
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [setHud]);
+  }, [setHud, setHighScore]);
 
   const updateHud = useCallback(() => {
     const g = gameRef.current;
@@ -315,6 +323,11 @@ export default function Home() {
             <p className="mt-2 text-sm text-emerald-100/80">
               Destroy asteroids. Survive. Set a high score.
             </p>
+            {highScore > 0 ? (
+              <p className="mt-2 text-sm text-emerald-100/70">
+                Best score: <span className="font-mono tabular-nums text-emerald-50">{highScore}</span>
+              </p>
+            ) : null}
 
             <div className="mt-6 text-left text-xs text-emerald-100/70">
               <div className="font-medium text-emerald-100/90 mb-2">Controls</div>
@@ -345,6 +358,12 @@ export default function Home() {
             <div className="text-xl font-semibold tracking-wide">GAME OVER</div>
             <div className="mt-2 text-sm text-emerald-100/80">
               Final score: <span className="font-mono tabular-nums">{score}</span>
+            </div>
+            <div className="mt-1 text-sm text-emerald-100/70">
+              Best score: <span className="font-mono tabular-nums text-emerald-50">{highScore}</span>
+              {score > 0 && score >= highScore ? (
+                <span className="ml-2 text-emerald-300">New record!</span>
+              ) : null}
             </div>
             <div className="mt-4 flex items-center justify-center gap-2">
               <GameButton onClick={doRestart} autoFocus>Play again</GameButton>

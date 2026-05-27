@@ -5,8 +5,10 @@ type HudState = {
   score: number;
   lives: number;
   level: number;
+  highScore: number;
   isTouch: boolean;
   setHud: (next: Pick<HudState, "status" | "score" | "lives" | "level">) => void;
+  setHighScore: (highScore: number) => void;
   setIsTouch: (isTouch: boolean) => void;
 };
 
@@ -15,7 +17,9 @@ export const useOpenAstroidsStore = create<HudState>((set) => ({
   score: 0,
   lives: 3,
   level: 1,
+  highScore: 0,
   isTouch: false,
   setHud: (next) => set(next),
+  setHighScore: (highScore) => set({ highScore }),
   setIsTouch: (isTouch) => set({ isTouch }),
 }));

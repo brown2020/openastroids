@@ -17,38 +17,43 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="mt-6 text-2xl font-semibold tracking-wide">Privacy Policy</h1>
-            <p className="mt-2 text-sm text-emerald-100/70">Last updated: May 2026</p>
+        <p className="mt-2 text-sm text-emerald-100/70">Last updated: May 2026</p>
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-emerald-100/90">
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Summary</h2>
             <p className="mt-2">
               OpenAstroids is a privacy-respecting game. We do not collect, store, or transmit any
-              personal data.
+              personal data to our servers.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Data Collection</h2>
             <p className="mt-2">
-              <strong>We collect nothing.</strong> OpenAstroids runs entirely in your browser. No
-              analytics, no tracking pixels, no cookies, no server-side data storage.
+              <strong>We collect nothing on our servers.</strong> OpenAstroids runs entirely in your
+              browser. No analytics, no tracking pixels, no cookies, and no server-side data storage.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Local Storage</h2>
             <p className="mt-2">
-              The game does not currently use cookies, local storage, or session storage. Game
-              state and scores exist only in memory for the current browser session and are lost
-              when you refresh or close the page.
+              The game stores one number locally in your browser: your best high score (key:{" "}
+              <code className="rounded bg-black/40 px-1 py-0.5 text-emerald-100">openastroids-highscore</code>
+              ). This value never leaves your device and is not sent over the network.
+            </p>
+            <p className="mt-2">
+              Clearing site data, using a private browsing window, or blocking storage in your browser
+              will reset or prevent saving your high score. In-progress game state is not saved and is
+              lost when you refresh or close the page.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Third Parties</h2>
             <p className="mt-2">
-              We do not share any data with third parties because we do not collect any data.
+              We do not share any data with third parties. The high score stays on your device only.
             </p>
           </section>
 

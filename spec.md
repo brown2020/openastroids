@@ -55,7 +55,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Asteroid cap (26 total) | ❌ | No global cap on screen count |
 | Flying saucers | ❌ | Not implemented |
 | Sound / music | ❌ | Silent |
-| High score persistence | ❌ | Score lost on refresh |
+| High score persistence | ✅ | Single best score in `localStorage` (`openastroids-highscore`) |
 | Extra life at 10k | ❌ | Not implemented |
 | Thrust flame | ✅ | Flickering exhaust line when thrusting; static when reduced-motion |
 | Ship debris on death | ✅ | Six triangle segments fly outward (~600 ms) |
@@ -112,8 +112,6 @@ Next.js App Router
 |------------|--------|
 | No audio | By omission — largest gap vs. original |
 | No saucers | By omission — removes late-game pressure |
-| Scores not persisted | No localStorage/sessionStorage in code |
-| Privacy page mentions local high scores | **Doc/code mismatch** — privacy page says scores "may" use local storage; nothing is stored |
 | Touch detection hides keyboard hints on touchscreen laptops | `ontouchstart` / `maxTouchPoints` heuristic in `page.tsx` |
 | No automated tests | No test framework or scripts |
 | Enter does not restart from game over | Only Restart button / flow from overlay |
@@ -180,17 +178,21 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 4 — Local high score with honest privacy copy
+### Milestone 4 — Local high score with honest privacy copy ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Added `high-score.ts` with `readHighScore` / `maybeUpdateHighScore` using key `openastroids-highscore`. Loaded on mount; updated on game over in the rAF loop. Zustand exposes `highScore` for ready and game-over overlays. Privacy policy updated to describe local-only numeric storage and reset behavior.
 
 **User value:** Replay motivation; scores survive refresh without backend.
 
 **Implementation intent:** `localStorage` key (e.g. `openastroids-highscore`) read on mount, updated on game over if `score` exceeds stored value. Display best score on ready and game-over overlays. Update `privacy/page.tsx` to accurately describe what is stored (single numeric high score, local only).
 
 **Acceptance criteria:**
-- High score persists across page reload
-- No network requests for scores
-- Privacy page matches actual behavior
-- Clearing site data resets score (document in privacy page)
+- [x] High score persists across page reload
+- [x] No network requests for scores
+- [x] Privacy page matches actual behavior
+- [x] Clearing site data resets score (document in privacy page)
 
 ---
 
