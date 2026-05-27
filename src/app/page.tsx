@@ -8,6 +8,13 @@ import { useOpenAstroidsStore } from "@/stores/openastroids-store";
 
 const EMPTY_INPUT: InputState = { isThrusting: false, rotateDir: 0, isFiring: false, isHyperspace: false };
 
+function resetInputState(input: InputState, queuedHyperspace: { current: boolean }) {
+  input.isThrusting = false;
+  input.rotateDir = 0;
+  input.isFiring = false;
+  queuedHyperspace.current = false;
+}
+
 // HUD updates at ~13fps to reduce React re-renders while maintaining responsive feel
 const HUD_UPDATE_INTERVAL_MS = 75;
 
@@ -27,6 +34,7 @@ export default function Home() {
   const frameRef = useRef(0);
   const seedRef = useRef<number>(0);
   const hudLastUpdateMsRef = useRef(0);
+  const prefersReducedMotionRef = useRef(false);
 
   const { status, score, lives, level, isTouch, setHud, setIsTouch } = useOpenAstroidsStore();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
@@ -37,6 +45,10 @@ export default function Home() {
   useEffect(() => {
     setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
   }, [setIsTouch]);
+
+  useEffect(() => {
+    prefersReducedMotionRef.current = prefersReducedMotion;
+  }, [prefersReducedMotion]);
 
   useEffect(() => {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -105,7 +117,7 @@ export default function Home() {
         queuedHyperspaceRef.current = false;
       }
 
-      render(ctxNow, next, { isCrt: !prefersReducedMotion });
+      render(ctxNow, next, { isCrt: !prefersReducedMotionRef.current });
 
       // Force immediate HUD sync on game over to ensure final score is displayed
       const isGameOver = next.status === "gameover" && game.status !== "gameover";
@@ -123,7 +135,7 @@ export default function Home() {
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [prefersReducedMotion, setHud]);
+  }, [setHud]);
 
   const updateHud = useCallback(() => {
     const g = gameRef.current;
@@ -131,16 +143,33 @@ export default function Home() {
     setHud({ status: g.status, score: g.score, lives: g.lives, level: g.level });
   }, [setHud]);
 
+  const pauseGame = useCallback(() => {
+    const g = gameRef.current;
+    if (!g || g.status !== "running") return;
+    resetInputState(inputRef.current, queuedHyperspaceRef);
+    gameRef.current = togglePause(g);
+    updateHud();
+  }, [updateHud]);
+
   // Auto-pause when tab becomes hidden
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && gameRef.current?.status === "running") {
-        gameRef.current = togglePause(gameRef.current);
-        updateHud();
-      }
+      if (document.hidden) pauseGame();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [pauseGame]);
+
+  const doRestart = useCallback(() => {
+    const g = gameRef.current;
+    if (!g) return;
+    resetInputState(inputRef.current, queuedHyperspaceRef);
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    seedRef.current = buf[0] ?? 1;
+    frameRef.current = 0;
+    gameRef.current = resetGame(g, performance.now(), seedRef.current);
+    updateHud();
   }, [updateHud]);
 
   useEffect(() => {
@@ -158,12 +187,21 @@ export default function Home() {
       if (e.code === "KeyP") {
         const g = gameRef.current;
         if (!g) return;
-        gameRef.current = togglePause(g);
+        if (g.status === "running") {
+          resetInputState(inputRef.current, queuedHyperspaceRef);
+          gameRef.current = togglePause(g);
+        } else if (g.status === "paused") {
+          gameRef.current = togglePause(g);
+        }
         updateHud();
       }
       if (e.code === "Enter") {
         const g = gameRef.current;
-        if (!g || g.status === "gameover") return;
+        if (!g) return;
+        if (g.status === "gameover") {
+          doRestart();
+          return;
+        }
         gameRef.current = startGame(g, performance.now());
         updateHud();
       }
@@ -184,7 +222,7 @@ export default function Home() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [updateHud]);
+  }, [updateHud, doRestart]);
 
   const doStart = useCallback(() => {
     const g = gameRef.current;
@@ -196,18 +234,12 @@ export default function Home() {
   const doPause = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
-    gameRef.current = togglePause(g);
-    updateHud();
-  }, [updateHud]);
-
-  const doRestart = useCallback(() => {
-    const g = gameRef.current;
-    if (!g) return;
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    seedRef.current = buf[0] ?? 1;
-    frameRef.current = 0;
-    gameRef.current = resetGame(g, performance.now(), seedRef.current);
+    if (g.status === "running") {
+      resetInputState(inputRef.current, queuedHyperspaceRef);
+      gameRef.current = togglePause(g);
+    } else if (g.status === "paused") {
+      gameRef.current = togglePause(g);
+    }
     updateHud();
   }, [updateHud]);
 

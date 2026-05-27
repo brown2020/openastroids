@@ -105,7 +105,14 @@ export function createInitialState(opts: {
  */
 export function resizeState(prev: GameState, width: number, height: number): GameState {
   if (prev.width === width && prev.height === height) return prev;
-  return { ...prev, width, height, ship: { ...prev.ship, pos: wrapPosition(prev.ship.pos, width, height) } };
+  return {
+    ...prev,
+    width,
+    height,
+    ship: { ...prev.ship, pos: wrapPosition(prev.ship.pos, width, height) },
+    bullets: prev.bullets.map((b) => ({ ...b, pos: wrapPosition(b.pos, width, height) })),
+    asteroids: prev.asteroids.map((a) => ({ ...a, pos: wrapPosition(a.pos, width, height) })),
+  };
 }
 
 /**
@@ -201,6 +208,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   const spawnedAsteroids: Asteroid[] = [];
 
   for (const b of bullets) {
+    if (spentBullets.has(b.id)) continue;
     for (const a of asteroids) {
       if (hitAsteroids.has(a.id)) continue;
       if (dist(b.pos, a.pos) <= b.radius + a.radius) {
@@ -215,6 +223,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
           bornAtMs: nowMs,
           durationMs: 320,
         });
+        break;
       }
     }
   }

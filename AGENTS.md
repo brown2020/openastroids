@@ -90,7 +90,8 @@ npm run dev      # Dev server at http://localhost:3000
 npm run build    # Production build
 npm start        # Serve production build
 npm run lint     # ESLint (eslint-config-next)
-npx tsc --noEmit # Typecheck (no npm script defined)
+npm run typecheck # Typecheck
+npm run test      # Unit tests (node:test + tsx)
 ```
 
 ## Canonical validation
@@ -98,7 +99,7 @@ npx tsc --noEmit # Typecheck (no npm script defined)
 Run before committing code changes:
 
 ```bash
-npm run lint && npx tsc --noEmit && npm run build
+npm run lint && npm run typecheck && npm run test && npm run build
 ```
 
 There is **no test suite** and no `npm test` script. Do not add watch-mode or interactive commands in autonomous runs.
@@ -189,7 +190,7 @@ Do not create feature branches unless explicitly requested. Do not open PRs unle
 A change is done when:
 
 1. It matches the requested scope (one focused increment)
-2. `npm run lint && npx tsc --noEmit && npm run build` pass
+2. `npm run lint && npm run typecheck && npm run test && npm run build` pass
 3. Manual smoke test criteria met for gameplay/UI changes
 4. `spec.md` updated if product behavior or roadmap status changed
 5. Committed to `dev` with a clear message; pushed to `origin/dev` when requested

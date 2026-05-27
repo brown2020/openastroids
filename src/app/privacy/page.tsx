@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="mt-6 text-2xl font-semibold tracking-wide">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-emerald-100/70">Last updated: February 2025</p>
+            <p className="mt-2 text-sm text-emerald-100/70">Last updated: May 2026</p>
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-emerald-100/90">
           <section>
@@ -39,8 +39,9 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Local Storage</h2>
             <p className="mt-2">
-              The game may use your browser&apos;s local storage to save preferences (such as high
-              scores) locally on your device. This data never leaves your browser.
+              The game does not currently use cookies, local storage, or session storage. Game
+              state and scores exist only in memory for the current browser session and are lost
+              when you refresh or close the page.
             </p>
           </section>
 
