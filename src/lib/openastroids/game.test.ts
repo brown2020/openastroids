@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  applyScoreExtraLives,
   createInitialState,
+  EXTRA_LIFE_SCORE_INTERVAL,
   resetGame,
   resizeState,
   spawnShipDebris,
@@ -47,12 +49,43 @@ describe("game state transitions", () => {
   });
 
   it("resetGame returns a fresh ready state", () => {
-    const running = runningState({ score: 500, lives: 1, level: 4 });
+    const running = runningState({ score: 500, lives: 1, level: 4, nextExtraLifeAt: 30_000 });
     const reset = resetGame(running, 2000, 99);
     assert.equal(reset.status, "ready");
     assert.equal(reset.score, 0);
     assert.equal(reset.lives, 3);
     assert.equal(reset.level, 1);
+    assert.equal(reset.nextExtraLifeAt, EXTRA_LIFE_SCORE_INTERVAL);
+  });
+});
+
+describe("applyScoreExtraLives", () => {
+  it("does not award a life below the threshold", () => {
+    const result = applyScoreExtraLives(9999, 3, EXTRA_LIFE_SCORE_INTERVAL);
+    assert.equal(result.lives, 3);
+    assert.equal(result.nextExtraLifeAt, EXTRA_LIFE_SCORE_INTERVAL);
+    assert.equal(result.extraLivesGained, 0);
+  });
+
+  it("awards one life at 10k and advances the threshold", () => {
+    const result = applyScoreExtraLives(10_000, 3, EXTRA_LIFE_SCORE_INTERVAL);
+    assert.equal(result.lives, 4);
+    assert.equal(result.nextExtraLifeAt, 20_000);
+    assert.equal(result.extraLivesGained, 1);
+  });
+
+  it("awards multiple lives when several thresholds are crossed at once", () => {
+    const result = applyScoreExtraLives(25_000, 2, EXTRA_LIFE_SCORE_INTERVAL);
+    assert.equal(result.lives, 4);
+    assert.equal(result.nextExtraLifeAt, 30_000);
+    assert.equal(result.extraLivesGained, 2);
+  });
+
+  it("does not re-award a threshold already passed", () => {
+    const result = applyScoreExtraLives(12_000, 4, 20_000);
+    assert.equal(result.lives, 4);
+    assert.equal(result.nextExtraLifeAt, 20_000);
+    assert.equal(result.extraLivesGained, 0);
   });
 });
 

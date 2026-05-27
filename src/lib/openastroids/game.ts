@@ -67,6 +67,9 @@ const SHIP_WING_ANGLE = 2.45;
 /** Starting number of lives */
 const DEFAULT_LIVES = 3;
 
+/** Score interval for awarding an extra life (matches arcade) */
+export const EXTRA_LIFE_SCORE_INTERVAL = 10_000;
+
 /**
  * Creates the initial game state with default values.
  * @param opts - Configuration options for initializing the game
@@ -96,6 +99,7 @@ export function createInitialState(opts: {
     lives: DEFAULT_LIVES,
     score: 0,
     level: 1,
+    nextExtraLifeAt: EXTRA_LIFE_SCORE_INTERVAL,
     ship,
     bullets: [],
     asteroids: spawnAsteroids({ rng, width, height, level: 1, avoid: ship.pos }),
@@ -247,6 +251,10 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   bullets = bullets.filter((b) => !spentBullets.has(b.id));
   asteroids = asteroids.filter((a) => !hitAsteroids.has(a.id)).concat(spawnedAsteroids);
 
+  let lives = prev.lives;
+  let nextExtraLifeAt = prev.nextExtraLifeAt;
+  ({ lives, nextExtraLifeAt } = applyScoreExtraLives(score, lives, nextExtraLifeAt));
+
   // collisions: ship vs asteroids
   const isInvincible = nowMs < ship.invincibleUntilMs;
   if (!isInvincible) {
@@ -254,8 +262,8 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
       if (dist(ship.pos, a.pos) <= ship.radius + a.radius) {
         didShipExplode = true;
         debris = debris.concat(spawnShipDebris(ship, rng, nowMs));
-        const lives = prev.lives - 1;
-        if (lives <= 0) {
+        const livesAfterHit = lives - 1;
+        if (livesAfterHit <= 0) {
           return {
             next: {
               ...prev,
@@ -264,6 +272,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
               lastFrameMs: nowMs,
               lives: 0,
               score,
+              nextExtraLifeAt,
               bullets: [],
               ship,
               asteroids,
@@ -280,8 +289,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
             ...prev,
             nowMs,
             lastFrameMs: nowMs,
-            lives,
+            lives: livesAfterHit,
             score,
+            nextExtraLifeAt,
             ship,
             bullets: [],
             asteroids,
@@ -314,9 +324,29 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     explosions,
     debris,
     score,
+    lives,
+    nextExtraLifeAt,
     level,
   };
   return { next, didShipExplode, didLevelAdvance };
+}
+
+/** Awards +1 life for each 10k score threshold crossed since the last award. */
+export function applyScoreExtraLives(
+  score: number,
+  lives: number,
+  nextExtraLifeAt: number,
+  interval: number = EXTRA_LIFE_SCORE_INTERVAL,
+): { lives: number; nextExtraLifeAt: number; extraLivesGained: number } {
+  let updatedLives = lives;
+  let threshold = nextExtraLifeAt;
+  let extraLivesGained = 0;
+  while (score >= threshold) {
+    updatedLives += 1;
+    extraLivesGained += 1;
+    threshold += interval;
+  }
+  return { lives: updatedLives, nextExtraLifeAt: threshold, extraLivesGained };
 }
 
 /** Spawns 6 outward-flying line segments from the ship triangle (testable, pure aside from rng). */

@@ -65,6 +65,8 @@ export type GameState = {
   lives: number;
   score: number;
   level: number;
+  /** Score at which the next bonus life is awarded (10k, 20k, …) */
+  nextExtraLifeAt: number;
   ship: Ship;
   bullets: Bullet[];
   asteroids: Asteroid[];

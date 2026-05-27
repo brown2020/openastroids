@@ -48,7 +48,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Bullet limit (max 4) | ✅ | Enforced in `game.ts` `step()` |
 | Asteroid sizes | ✅ | Large → 2 medium → 2 small → gone |
 | Scoring | ✅ | 20 / 50 / 100 points |
-| Lives | ✅ | Start 3; no bonus lives |
+| Lives | ✅ | Start 3; +1 bonus life at each 10k score |
 | Invincibility | ✅ | 1.4 s spawn/respawn; blink render |
 | Hyperspace | ✅ | Random teleport; 520 ms invincibility |
 | Level waves | ✅ | 4 + floor(level × 0.75) large asteroids, cap 12 |
@@ -56,7 +56,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Flying saucers | ❌ | Not implemented |
 | Sound / music | ❌ | Silent |
 | High score persistence | ✅ | Single best score in `localStorage` (`openastroids-highscore`) |
-| Extra life at 10k | ❌ | Not implemented |
+| Extra life at 10k | ✅ | `nextExtraLifeAt` threshold in `game.ts` |
 | Thrust flame | ✅ | Flickering exhaust line when thrusting; static when reduced-motion |
 | Ship debris on death | ✅ | Six triangle segments fly outward (~600 ms) |
 | Game-over stats | ❌ | Final score only |
@@ -196,16 +196,22 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 5 — Extra life at 10,000 points
+### Milestone 5 — Extra life at 10,000 points ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Added `nextExtraLifeAt` to `GameState` (starts at 10,000). `applyScoreExtraLives()` runs after scoring each frame, awarding +1 life per threshold crossed and advancing the threshold by 10k. Resets on `resetGame`. HUD picks up life changes via existing Zustand bridge.
 
 **User value:** Classic progression reward; extends sessions for skilled players.
 
 **Implementation intent:** Track `extraLifeAwardedAt` threshold multiples in `GameState` or derive from score. At each 10,000-point boundary, increment lives once and optionally flash HUD. Match arcade: one extra life per threshold crossed per run.
 
 **Acceptance criteria:**
-- At 10k, 20k, 30k… player gains +1 life (once per threshold)
-- Lives display updates via existing HUD bridge
-- No infinite life exploit from score reset within same frame
+- [x] At 10k, 20k, 30k… player gains +1 life (once per threshold)
+- [x] Lives display updates via existing HUD bridge
+- [x] No infinite life exploit from score reset within same frame
+
+**Follow-up (deferred):** Optional HUD flash or sound when an extra life is earned (see Milestone 7 audio).
 
 ---
 
