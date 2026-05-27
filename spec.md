@@ -57,7 +57,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Sound / music | ❌ | Silent |
 | High score persistence | ❌ | Score lost on refresh |
 | Extra life at 10k | ❌ | Not implemented |
-| Thrust flame | ❌ | Not rendered |
+| Thrust flame | ✅ | Flickering exhaust line when thrusting; static when reduced-motion |
 | Ship debris on death | ❌ | Generic radial explosion only |
 | Game-over stats | ❌ | Final score only |
 | Pause / resume | ✅ | P, button, visibility auto-pause |
@@ -147,16 +147,20 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 2 — Thrust flame visual
+### Milestone 2 — Thrust flame visual ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Extended `RenderOptions` with `isThrusting` and `prefersReducedMotion`. `drawThrustFlame()` renders a line behind the ship during running gameplay; animated flicker uses `nowMs`, reduced-motion uses a fixed 10px segment. Wired from `page.tsx` input ref in the rAF loop.
 
 **User value:** Immediate feedback that thrust is active; closer to arcade authenticity.
 
 **Implementation intent:** In `render.ts` `drawShip()`, when thrusting (pass input or ship state flag into render options), draw a short flickering line segment behind the ship. Use frame/time for flicker; respect reduced-motion (static shorter flame or omit).
 
 **Acceptance criteria:**
-- Flame visible only while thrust input active during running state
-- No measurable frame-rate regression on mid-range mobile
-- Reduced-motion path does not animate flicker aggressively
+- [x] Flame visible only while thrust input active during running state
+- [x] No measurable frame-rate regression on mid-range mobile
+- [x] Reduced-motion path does not animate flicker aggressively
 
 ---
 

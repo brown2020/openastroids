@@ -1,11 +1,20 @@
 import { TAU, add, fromAngle, mul } from "./math";
 import { createRng } from "./random";
-import type { Asteroid, GameState, Vec2 } from "./types";
+import type { Asteroid, GameState, Ship, Vec2 } from "./types";
 
 export type RenderOptions = {
   isCrt?: boolean;
-  pixelRatio?: number;
+  /** True while thrust input is held during running gameplay */
+  isThrusting?: boolean;
+  /** When true, thrust flame uses a static short line instead of flicker */
+  prefersReducedMotion?: boolean;
 };
+
+/** Thrust exhaust length in pixels (pure helper for tests and rendering). */
+export function thrustFlameLength(nowMs: number, animate: boolean): number {
+  if (!animate) return 10;
+  return 8 + 6 * Math.abs(Math.sin(nowMs * 0.04));
+}
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState, opts: RenderOptions = {}) {
   const { width, height } = state;
@@ -38,7 +47,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, opts: Re
   }
 
   // ship
-  drawShip(ctx, state);
+  drawShip(ctx, state, opts);
 
   // explosions
   for (const e of state.explosions) drawExplosion(ctx, e.pos, (state.nowMs - e.bornAtMs) / e.durationMs);
@@ -48,12 +57,16 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, opts: Re
   ctx.restore();
 }
 
-function drawShip(ctx: CanvasRenderingContext2D, state: GameState) {
+function drawShip(ctx: CanvasRenderingContext2D, state: GameState, opts: RenderOptions) {
   const ship = state.ship;
   const isInvincible = state.nowMs < ship.invincibleUntilMs;
   const blink = isInvincible ? Math.floor((ship.invincibleUntilMs - state.nowMs) / 110) % 2 === 0 : false;
 
   if (blink) return;
+
+  if (opts.isThrusting && state.status === "running") {
+    drawThrustFlame(ctx, ship, state.nowMs, !opts.prefersReducedMotion);
+  }
 
   const nose = add(ship.pos, mul(fromAngle(ship.angle), ship.radius + 8));
   const left = add(ship.pos, mul(fromAngle(ship.angle + 2.45), ship.radius));
@@ -67,6 +80,22 @@ function drawShip(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.lineTo(right.x, right.y);
   ctx.closePath();
   ctx.stroke();
+}
+
+function drawThrustFlame(ctx: CanvasRenderingContext2D, ship: Ship, nowMs: number, animate: boolean) {
+  const length = thrustFlameLength(nowMs, animate);
+  const wobble = animate ? 0.12 * Math.sin(nowMs * 0.03) : 0;
+  const exhaustDir = fromAngle(ship.angle + Math.PI + wobble);
+  const tail = add(ship.pos, mul(exhaustDir, length));
+
+  ctx.save();
+  ctx.shadowBlur = animate ? 8 : 4;
+  ctx.strokeStyle = animate ? "rgba(210, 255, 235, 0.75)" : "rgba(210, 255, 235, 0.6)";
+  ctx.beginPath();
+  ctx.moveTo(ship.pos.x, ship.pos.y);
+  ctx.lineTo(tail.x, tail.y);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawAsteroid(ctx: CanvasRenderingContext2D, a: Asteroid) {

@@ -117,7 +117,11 @@ export default function Home() {
         queuedHyperspaceRef.current = false;
       }
 
-      render(ctxNow, next, { isCrt: !prefersReducedMotionRef.current });
+      render(ctxNow, next, {
+        isCrt: !prefersReducedMotionRef.current,
+        isThrusting: next.status === "running" && input.isThrusting,
+        prefersReducedMotion: prefersReducedMotionRef.current,
+      });
 
       // Force immediate HUD sync on game over to ensure final score is displayed
       const isGameOver = next.status === "gameover" && game.status !== "gameover";
