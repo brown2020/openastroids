@@ -65,6 +65,10 @@ export type GameState = {
   lives: number;
   score: number;
   level: number;
+  /** Asteroids destroyed by player bullets this run */
+  asteroidsDestroyed: number;
+  /** Active gameplay time accumulated while running (excludes pause), in ms */
+  activeMs: number;
   /** Score at which the next bonus life is awarded (10k, 20k, …) */
   nextExtraLifeAt: number;
   ship: Ship;

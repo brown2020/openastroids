@@ -59,7 +59,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Extra life at 10k | ✅ | `nextExtraLifeAt` threshold in `game.ts` |
 | Thrust flame | ✅ | Flickering exhaust line when thrusting; static when reduced-motion |
 | Ship debris on death | ✅ | Six triangle segments fly outward (~600 ms) |
-| Game-over stats | ❌ | Final score only |
+| Game-over stats | ✅ | Score, level, asteroids destroyed, time survived |
 | Pause / resume | ✅ | P, button, visibility auto-pause |
 | Restart | ✅ | New crypto seed |
 | CRT / glow visuals | ✅ | Disabled when prefers-reduced-motion |
@@ -215,16 +215,20 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 6 — Game-over summary screen
+### Milestone 6 — Game-over summary screen ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Added `asteroidsDestroyed` and `activeMs` to `GameState`. Bullets increment destroy count; `activeMs` accumulates per running frame (pause excluded). Game-over overlay shows level, time (`m:ss`), and asteroids destroyed alongside score/high score. Stats reset via `resetGame`.
 
 **User value:** Closure and shareable moment; answers "how far did I get?"
 
 **Implementation intent:** Extend game-over overlay (or `GameState` snapshot at death) to show level reached, asteroids destroyed (counter added in `game.ts`), and time survived. Keep layout consistent with existing emerald overlay style.
 
 **Acceptance criteria:**
-- Game over shows: final score, level, asteroids destroyed, time played
-- Stats accurate for the completed run
-- Restart clears run stats
+- [x] Game over shows: final score, level, asteroids destroyed, time played
+- [x] Stats accurate for the completed run
+- [x] Restart clears run stats
 
 ---
 

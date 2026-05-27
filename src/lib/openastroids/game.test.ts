@@ -22,15 +22,21 @@ const NO_INPUT: InputState = {
 };
 
 function runningState(overrides: Partial<GameState> = {}): GameState {
-  const base = createInitialState({ width: 800, height: 600, nowMs: 1000, seed: 42 });
-  return startGame(
+  const nowMs = overrides.nowMs ?? 1000;
+  const base = createInitialState({ width: 800, height: 600, nowMs, seed: 42 });
+  const started = startGame(
     {
       ...base,
       ...overrides,
       ship: { ...base.ship, ...overrides.ship },
     },
-    1000,
+    nowMs,
   );
+  // startGame syncs lastFrameMs to nowMs; preserve an explicit delta for step() tests.
+  if (overrides.lastFrameMs !== undefined) {
+    return { ...started, lastFrameMs: overrides.lastFrameMs };
+  }
+  return started;
 }
 
 describe("game state transitions", () => {
@@ -56,6 +62,8 @@ describe("game state transitions", () => {
     assert.equal(reset.lives, 3);
     assert.equal(reset.level, 1);
     assert.equal(reset.nextExtraLifeAt, EXTRA_LIFE_SCORE_INTERVAL);
+    assert.equal(reset.asteroidsDestroyed, 0);
+    assert.equal(reset.activeMs, 0);
   });
 });
 
@@ -97,6 +105,52 @@ describe("step", () => {
     assert.equal(next.status, "ready");
     assert.equal(next.asteroids.length, asteroidCount);
     assert.equal(next.score, 0);
+  });
+
+  it("accumulates active time while running", () => {
+    const state = runningState({ nowMs: 1000, lastFrameMs: 960, activeMs: 500 });
+    const { next } = step(state, NO_INPUT, 1000, 1);
+    assert.equal(next.activeMs, 540);
+  });
+
+  it("increments asteroids destroyed when a bullet hits", () => {
+    const asteroid: Asteroid = {
+      id: "a1",
+      pos: { x: 200, y: 200 },
+      vel: { x: 0, y: 0 },
+      angle: 0,
+      spin: 0,
+      radius: 52,
+      size: 3,
+      shape: Array.from({ length: 12 }, () => 1),
+    };
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 990,
+      asteroidsDestroyed: 2,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 0,
+        canFireAtMs: 0,
+      },
+      bullets: [
+        {
+          id: "b1",
+          pos: { x: 200, y: 200 },
+          vel: { x: 0, y: 0 },
+          radius: 2.5,
+          bornAtMs: 900,
+        },
+      ],
+      asteroids: [asteroid],
+    });
+
+    const { next } = step(state, NO_INPUT, 1000, 12345);
+    assert.equal(next.asteroidsDestroyed, 3);
+    assert.equal(next.score, 20);
   });
 
   it("does not fire when four bullets are already on screen", () => {

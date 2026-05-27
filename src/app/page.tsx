@@ -1,7 +1,15 @@
 "use client";
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { createInitialState, resizeState, resetGame, startGame, step, togglePause } from "@/lib/openastroids/game";
+import {
+  createInitialState,
+  formatRunTimeMs,
+  resizeState,
+  resetGame,
+  startGame,
+  step,
+  togglePause,
+} from "@/lib/openastroids/game";
 import { maybeUpdateHighScore, readHighScore } from "@/lib/openastroids/high-score";
 import { render } from "@/lib/openastroids/render";
 import type { GameState, InputState } from "@/lib/openastroids/types";
@@ -37,7 +45,8 @@ export default function Home() {
   const hudLastUpdateMsRef = useRef(0);
   const prefersReducedMotionRef = useRef(false);
 
-  const { status, score, lives, level, highScore, isTouch, setHud, setHighScore, setIsTouch } = useOpenAstroidsStore();
+  const { status, score, lives, level, asteroidsDestroyed, activeMs, highScore, isTouch, setHud, setHighScore, setIsTouch } =
+    useOpenAstroidsStore();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -132,7 +141,14 @@ export default function Home() {
       const isGameOver = next.status === "gameover" && game.status !== "gameover";
       if (isGameOver || nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
         hudLastUpdateMsRef.current = nowMs;
-        setHud({ status: next.status, score: next.score, lives: next.lives, level: next.level });
+        setHud({
+          status: next.status,
+          score: next.score,
+          lives: next.lives,
+          level: next.level,
+          asteroidsDestroyed: next.asteroidsDestroyed,
+          activeMs: next.activeMs,
+        });
         if (isGameOver) {
           setHighScore(maybeUpdateHighScore(next.score));
         }
@@ -152,7 +168,14 @@ export default function Home() {
   const updateHud = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
-    setHud({ status: g.status, score: g.score, lives: g.lives, level: g.level });
+    setHud({
+      status: g.status,
+      score: g.score,
+      lives: g.lives,
+      level: g.level,
+      asteroidsDestroyed: g.asteroidsDestroyed,
+      activeMs: g.activeMs,
+    });
   }, [setHud]);
 
   const pauseGame = useCallback(() => {
@@ -364,6 +387,20 @@ export default function Home() {
               {score > 0 && score >= highScore ? (
                 <span className="ml-2 text-emerald-300">New record!</span>
               ) : null}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-left text-sm text-emerald-100/80">
+              <div>
+                <span className="text-emerald-100/70">Level reached</span>
+                <div className="font-mono tabular-nums text-emerald-50">{level}</div>
+              </div>
+              <div>
+                <span className="text-emerald-100/70">Time survived</span>
+                <div className="font-mono tabular-nums text-emerald-50">{formatRunTimeMs(activeMs)}</div>
+              </div>
+              <div className="col-span-2">
+                <span className="text-emerald-100/70">Asteroids destroyed</span>
+                <div className="font-mono tabular-nums text-emerald-50">{asteroidsDestroyed}</div>
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-center gap-2">
               <GameButton onClick={doRestart} autoFocus>Play again</GameButton>

@@ -99,6 +99,8 @@ export function createInitialState(opts: {
     lives: DEFAULT_LIVES,
     score: 0,
     level: 1,
+    asteroidsDestroyed: 0,
+    activeMs: 0,
     nextExtraLifeAt: EXTRA_LIFE_SCORE_INTERVAL,
     ship,
     bullets: [],
@@ -192,6 +194,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   let didShipExplode = false;
   let didLevelAdvance = false;
 
+  const activeMs = prev.activeMs + dtMs;
+  let asteroidsDestroyed = prev.asteroidsDestroyed;
+
   let ship = integrateShip(prev.ship, input, dt, prev);
   let bullets = integrateBullets(prev.bullets, dt, prev, nowMs);
   let asteroids = integrateAsteroids(prev.asteroids, dt, prev);
@@ -237,6 +242,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
         const split = splitAsteroid(a, rng);
         spawnedAsteroids.push(...split.spawned);
         score += split.score;
+        asteroidsDestroyed += 1;
         explosions = explosions.concat({
           id: rid(rng),
           pos: a.pos,
@@ -272,6 +278,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
               lastFrameMs: nowMs,
               lives: 0,
               score,
+              level: prev.level,
+              asteroidsDestroyed,
+              activeMs,
               nextExtraLifeAt,
               bullets: [],
               ship,
@@ -291,6 +300,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
             lastFrameMs: nowMs,
             lives: livesAfterHit,
             score,
+            level: prev.level,
+            asteroidsDestroyed,
+            activeMs,
             nextExtraLifeAt,
             ship,
             bullets: [],
@@ -327,8 +339,18 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     lives,
     nextExtraLifeAt,
     level,
+    asteroidsDestroyed,
+    activeMs,
   };
   return { next, didShipExplode, didLevelAdvance };
+}
+
+/** Formats active run time for HUD display (m:ss). */
+export function formatRunTimeMs(ms: number): string {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 /** Awards +1 life for each 10k score threshold crossed since the last award. */
