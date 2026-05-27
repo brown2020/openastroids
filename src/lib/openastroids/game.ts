@@ -32,6 +32,8 @@ const BULLET_RADIUS = 2.5;
 const BULLET_COOLDOWN_MS = 180;
 /** Bullet lifespan in milliseconds before disappearing */
 const BULLET_LIFETIME_MS = 900;
+/** Maximum player bullets on screen at once (matches arcade original) */
+const MAX_BULLETS_ON_SCREEN = 4;
 
 // Asteroid physics constants
 /** Base speed for asteroids in pixels per second (smaller asteroids move faster) */
@@ -187,8 +189,8 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     };
   }
 
-  // ship firing
-  if (input.isFiring && nowMs >= ship.canFireAtMs) {
+  // ship firing — max 4 on screen; cooldown unchanged when at limit
+  if (input.isFiring && nowMs >= ship.canFireAtMs && bullets.length < MAX_BULLETS_ON_SCREEN) {
     const dir = fromAngle(ship.angle);
     const muzzle = add(ship.pos, mul(dir, ship.radius + 8));
     bullets = bullets.concat({

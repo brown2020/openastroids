@@ -44,8 +44,8 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 |------|--------|-------|
 | Ship movement | ✅ | Rotation, thrust, friction, max speed 560 px/s |
 | Screen wrap | ✅ | Ship, bullets, asteroids |
-| Firing | ✅ | Cooldown 180 ms; lifetime 900 ms |
-| Bullet limit (max 4) | ❌ | Unlimited bullets on screen |
+| Firing | ✅ | Cooldown 180 ms; lifetime 900 ms; max 4 on screen |
+| Bullet limit (max 4) | ✅ | Enforced in `game.ts` `step()` |
 | Asteroid sizes | ✅ | Large → 2 medium → 2 small → gone |
 | Scoring | ✅ | 20 / 50 / 100 points |
 | Lives | ✅ | Start 3; no bonus lives |
@@ -115,7 +115,6 @@ Next.js App Router
 | Scores not persisted | No localStorage/sessionStorage in code |
 | Privacy page mentions local high scores | **Doc/code mismatch** — privacy page says scores "may" use local storage; nothing is stored |
 | Touch detection hides keyboard hints on touchscreen laptops | `ontouchstart` / `maxTouchPoints` heuristic in `page.tsx` |
-| Unlimited bullets | Differs from arcade max-4 rule |
 | Generic explosion on ship death | Not authentic line-segment debris |
 | No automated tests | No test framework or scripts |
 | Enter does not restart from game over | Only Restart button / flow from overlay |
@@ -128,17 +127,23 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 1 — Bullet limit (max 4 on screen)
+### Milestone 1 — Bullet limit (max 4 on screen) ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Added `MAX_BULLETS_ON_SCREEN = 4` in `game.ts`. Firing is skipped when `bullets.length >= 4`; cooldown does not advance at the limit. Unit tests cover at-limit blocking and refire after expiry.
 
 **User value:** Restores classic resource management; prevents screen clutter and easy high scores.
 
 **Implementation intent:** In `game.ts` `step()`, skip firing when `bullets.length >= 4`. Optionally show brief HUD feedback when limit reached (defer UI polish if not trivial).
 
 **Acceptance criteria:**
-- Cannot exceed 4 player bullets simultaneously
-- Firing resumes when a bullet expires or hits an asteroid
-- Existing cooldown behavior unchanged
-- Lint, typecheck, build pass
+- [x] Cannot exceed 4 player bullets simultaneously
+- [x] Firing resumes when a bullet expires or hits an asteroid
+- [x] Existing cooldown behavior unchanged
+- [x] Lint, typecheck, build pass
+
+**Follow-up (deferred):** Optional HUD cue when player tries to fire at the 4-bullet limit (see Milestone 12).
 
 ---
 
@@ -263,6 +268,19 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 - Worth 1000 points
 
 **Depends on:** Milestone 9
+
+---
+
+### Milestone 12 — Bullet limit HUD feedback (optional polish)
+
+**User value:** Subtle feedback when the 4-bullet cap blocks a shot, without adding clutter.
+
+**Implementation intent:** When `isFiring` and at bullet limit during running state, briefly flash or dim the HUD score row or show a one-line “MAX” indicator for ~300 ms. Respect reduced-motion (static text only).
+
+**Acceptance criteria:**
+- Visible only when fire input is active and limit is reached
+- Does not persist or block gameplay
+- No new dependencies
 
 ---
 

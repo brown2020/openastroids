@@ -64,6 +64,60 @@ describe("step", () => {
     assert.equal(next.score, 0);
   });
 
+  it("does not fire when four bullets are already on screen", () => {
+    const bullets = Array.from({ length: 4 }, (_, i) => ({
+      id: `b${i}`,
+      pos: { x: 100 + i * 10, y: 100 },
+      vel: { x: 0, y: 0 },
+      radius: 2.5,
+      bornAtMs: 900,
+    }));
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 990,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 99999,
+        canFireAtMs: 0,
+      },
+      bullets,
+    });
+
+    const { next } = step(state, { ...NO_INPUT, isFiring: true }, 1000, 99);
+    assert.equal(next.bullets.length, 4);
+    assert.equal(next.ship.canFireAtMs, 0, "cooldown should not advance when at bullet limit");
+  });
+
+  it("fires when a bullet slot opens after expiry", () => {
+    const expiredBullets = Array.from({ length: 4 }, (_, i) => ({
+      id: `b${i}`,
+      pos: { x: 100, y: 100 },
+      vel: { x: 0, y: 0 },
+      radius: 2.5,
+      bornAtMs: 0,
+    }));
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 990,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: -Math.PI / 2,
+        radius: 14,
+        invincibleUntilMs: 99999,
+        canFireAtMs: 0,
+      },
+      bullets: expiredBullets,
+    });
+
+    const { next } = step(state, { ...NO_INPUT, isFiring: true }, 1000, 99);
+    assert.equal(next.bullets.length, 1);
+    assert.equal(next.ship.canFireAtMs, 1180);
+  });
+
   it("destroys at most one asteroid per bullet per frame", () => {
     const overlappingLarge: Asteroid = {
       id: "a1",

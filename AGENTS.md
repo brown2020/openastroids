@@ -72,7 +72,7 @@ Browser input (keyboard/touch)
 ## Key features that exist today
 
 - Ship: rotation, thrust, inertia, friction, max speed, screen wrap
-- Bullets: forward from ship nose, 900 ms lifetime, screen wrap, 180 ms cooldown — **no max-on-screen limit**
+- Bullets: forward from ship nose, 900 ms lifetime, screen wrap, 180 ms cooldown, **max 4 on screen**
 - Asteroids: 3 sizes, split on hit (20/50/100 pts), unique polygon shapes
 - Lives: 3 starting; invincibility 1.4 s after spawn/respawn with blink
 - Hyperspace: random teleport, brief invincibility, can collide on landing
