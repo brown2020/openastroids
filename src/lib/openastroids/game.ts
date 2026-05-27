@@ -4,6 +4,7 @@ import type {
   Asteroid,
   AsteroidSize,
   Bullet,
+  Debris,
   GameState,
   InputState,
   Ship,
@@ -57,6 +58,12 @@ const SCORE_MED = 50;
 /** Points awarded for destroying a small asteroid */
 const SCORE_SMALL = 100;
 
+/** Ship debris lifespan in milliseconds */
+const SHIP_DEBRIS_MS = 600;
+
+/** Ship triangle wing angle offset (matches render.ts) */
+const SHIP_WING_ANGLE = 2.45;
+
 /** Starting number of lives */
 const DEFAULT_LIVES = 3;
 
@@ -93,6 +100,7 @@ export function createInitialState(opts: {
     bullets: [],
     asteroids: spawnAsteroids({ rng, width, height, level: 1, avoid: ship.pos }),
     explosions: [],
+    debris: [],
     lastFrameMs: nowMs,
   };
   return state;
@@ -114,6 +122,11 @@ export function resizeState(prev: GameState, width: number, height: number): Gam
     ship: { ...prev.ship, pos: wrapPosition(prev.ship.pos, width, height) },
     bullets: prev.bullets.map((b) => ({ ...b, pos: wrapPosition(b.pos, width, height) })),
     asteroids: prev.asteroids.map((a) => ({ ...a, pos: wrapPosition(a.pos, width, height) })),
+    debris: prev.debris.map((d) => ({
+      ...d,
+      a: wrapPosition(d.a, width, height),
+      b: wrapPosition(d.b, width, height),
+    })),
   };
 }
 
@@ -179,6 +192,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   let bullets = integrateBullets(prev.bullets, dt, prev, nowMs);
   let asteroids = integrateAsteroids(prev.asteroids, dt, prev);
   let explosions = prev.explosions.filter((e) => nowMs - e.bornAtMs < e.durationMs);
+  let debris = prev.debris.filter((d) => nowMs - d.bornAtMs < d.durationMs);
 
   // hyperspace (teleport) - adds risk: brief invincibility but velocity kept
   if (input.isHyperspace && nowMs >= ship.invincibleUntilMs) {
@@ -239,12 +253,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     for (const a of asteroids) {
       if (dist(ship.pos, a.pos) <= ship.radius + a.radius) {
         didShipExplode = true;
-        explosions = explosions.concat({
-          id: rid(rng),
-          pos: ship.pos,
-          bornAtMs: nowMs,
-          durationMs: 520,
-        });
+        debris = debris.concat(spawnShipDebris(ship, rng, nowMs));
         const lives = prev.lives - 1;
         if (lives <= 0) {
           return {
@@ -259,6 +268,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
               ship,
               asteroids,
               explosions,
+              debris,
             },
             didShipExplode: true,
             didLevelAdvance: false,
@@ -276,6 +286,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
             bullets: [],
             asteroids,
             explosions,
+            debris,
           },
           didShipExplode: true,
           didLevelAdvance: false,
@@ -301,10 +312,40 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     bullets,
     asteroids,
     explosions,
+    debris,
     score,
     level,
   };
   return { next, didShipExplode, didLevelAdvance };
+}
+
+/** Spawns 6 outward-flying line segments from the ship triangle (testable, pure aside from rng). */
+export function spawnShipDebris(ship: Ship, rng: Rng, nowMs: number): Debris[] {
+  const nose = add(ship.pos, mul(fromAngle(ship.angle), ship.radius + 8));
+  const left = add(ship.pos, mul(fromAngle(ship.angle + SHIP_WING_ANGLE), ship.radius));
+  const right = add(ship.pos, mul(fromAngle(ship.angle - SHIP_WING_ANGLE), ship.radius));
+  const center = ship.pos;
+
+  const segments: [Vec2, Vec2][] = [
+    [nose, left],
+    [left, center],
+    [center, right],
+    [right, nose],
+    [center, nose],
+    [left, right],
+  ];
+
+  return segments.map(([a, b]) => {
+    const kick = mul(fromAngle(randBetween(rng, 0, TAU)), randBetween(rng, 80, 220));
+    return {
+      id: rid(rng),
+      a: { ...a },
+      b: { ...b },
+      vel: add(ship.vel, kick),
+      bornAtMs: nowMs,
+      durationMs: SHIP_DEBRIS_MS,
+    };
+  });
 }
 
 function integrateShip(ship: Ship, input: InputState, dt: number, game: GameState): Ship {

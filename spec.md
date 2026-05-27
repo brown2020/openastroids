@@ -58,7 +58,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | High score persistence | ❌ | Score lost on refresh |
 | Extra life at 10k | ❌ | Not implemented |
 | Thrust flame | ✅ | Flickering exhaust line when thrusting; static when reduced-motion |
-| Ship debris on death | ❌ | Generic radial explosion only |
+| Ship debris on death | ✅ | Six triangle segments fly outward (~600 ms) |
 | Game-over stats | ❌ | Final score only |
 | Pause / resume | ✅ | P, button, visibility auto-pause |
 | Restart | ✅ | New crypto seed |
@@ -115,7 +115,6 @@ Next.js App Router
 | Scores not persisted | No localStorage/sessionStorage in code |
 | Privacy page mentions local high scores | **Doc/code mismatch** — privacy page says scores "may" use local storage; nothing is stored |
 | Touch detection hides keyboard hints on touchscreen laptops | `ontouchstart` / `maxTouchPoints` heuristic in `page.tsx` |
-| Generic explosion on ship death | Not authentic line-segment debris |
 | No automated tests | No test framework or scripts |
 | Enter does not restart from game over | Only Restart button / flow from overlay |
 
@@ -164,16 +163,20 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 3 — Authentic ship death debris
+### Milestone 3 — Authentic ship death debris ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Added `Debris` type and `debris[]` on `GameState`. `spawnShipDebris()` creates 6 segments from the ship triangle with outward velocity; replaces the radial ship explosion on collision. Rendered in `drawDebris()` with fade-out; expires after 600 ms. No collision or scoring impact.
 
 **User value:** Death feels like the original; clearer feedback on collision.
 
 **Implementation intent:** Add `Debris` entity type (line segments with velocity and lifetime) in `types.ts`. On ship explosion in `game.ts`, spawn 4–6 segments from ship triangle vertices instead of/in addition to radial explosion. Render in `render.ts`; expire after ~600 ms.
 
 **Acceptance criteria:**
-- Ship-asteroid collision produces outward-flying line segments
-- Debris does not affect collision or scoring
-- Game over and respawn flows unchanged
+- [x] Ship-asteroid collision produces outward-flying line segments
+- [x] Debris does not affect collision or scoring
+- [x] Game over and respawn flows unchanged
 
 ---
 

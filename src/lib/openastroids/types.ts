@@ -44,6 +44,16 @@ export type Explosion = {
   durationMs: number;
 };
 
+/** Ship hull fragment — a line segment that flies outward after the ship is destroyed */
+export type Debris = {
+  id: string;
+  a: Vec2;
+  b: Vec2;
+  vel: Vec2;
+  bornAtMs: number;
+  durationMs: number;
+};
+
 export type GameStatus = "ready" | "running" | "paused" | "gameover";
 
 export type GameState = {
@@ -59,6 +69,7 @@ export type GameState = {
   bullets: Bullet[];
   asteroids: Asteroid[];
   explosions: Explosion[];
+  debris: Debris[];
   lastFrameMs: number;
 };
 

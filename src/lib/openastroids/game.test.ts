@@ -4,10 +4,12 @@ import {
   createInitialState,
   resetGame,
   resizeState,
+  spawnShipDebris,
   startGame,
   step,
   togglePause,
 } from "./game";
+import { createRng } from "./random";
 import type { Asteroid, GameState, InputState } from "./types";
 
 const NO_INPUT: InputState = {
@@ -155,6 +157,59 @@ describe("step", () => {
 
     const { next } = step(state, NO_INPUT, 1000, 12345);
     assert.equal(next.score, 20, "only one large asteroid should award points");
+  });
+});
+
+describe("spawnShipDebris", () => {
+  it("spawns six segments with ship velocity and 600ms lifetime", () => {
+    const ship = {
+      pos: { x: 400, y: 300 },
+      vel: { x: 12, y: -5 },
+      angle: 0,
+      radius: 14,
+      invincibleUntilMs: 0,
+      canFireAtMs: 0,
+    };
+    const debris = spawnShipDebris(ship, createRng(42), 1000);
+    assert.equal(debris.length, 6);
+    assert.ok(debris.every((d) => d.durationMs === 600));
+    assert.ok(debris.every((d) => d.vel.x !== 0 || d.vel.y !== 0));
+  });
+});
+
+describe("ship death debris", () => {
+  it("adds debris on ship-asteroid collision without radial ship explosion", () => {
+    const asteroid: Asteroid = {
+      id: "a1",
+      pos: { x: 400, y: 300 },
+      vel: { x: 0, y: 0 },
+      angle: 0,
+      spin: 0,
+      radius: 52,
+      size: 3,
+      shape: Array.from({ length: 12 }, () => 1),
+    };
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 990,
+      lives: 2,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 0,
+        canFireAtMs: 0,
+      },
+      asteroids: [asteroid],
+      debris: [],
+    });
+
+    const { next, didShipExplode } = step(state, NO_INPUT, 1000, 99);
+    assert.equal(didShipExplode, true);
+    assert.equal(next.debris.length, 6);
+    assert.equal(next.explosions.length, 0);
+    assert.equal(next.lives, 1);
   });
 });
 

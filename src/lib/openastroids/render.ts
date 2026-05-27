@@ -1,6 +1,6 @@
-import { TAU, add, fromAngle, mul } from "./math";
+import { TAU, add, fromAngle, mul, wrapPosition } from "./math";
 import { createRng } from "./random";
-import type { Asteroid, GameState, Ship, Vec2 } from "./types";
+import type { Asteroid, Debris, GameState, Ship, Vec2 } from "./types";
 
 export type RenderOptions = {
   isCrt?: boolean;
@@ -15,6 +15,8 @@ export function thrustFlameLength(nowMs: number, animate: boolean): number {
   if (!animate) return 10;
   return 8 + 6 * Math.abs(Math.sin(nowMs * 0.04));
 }
+
+const SHIP_WING_ANGLE = 2.45;
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState, opts: RenderOptions = {}) {
   const { width, height } = state;
@@ -49,6 +51,9 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, opts: Re
   // ship
   drawShip(ctx, state, opts);
 
+  // ship debris (drawn after ship so fragments appear on top during breakup)
+  for (const d of state.debris) drawDebris(ctx, d, state);
+
   // explosions
   for (const e of state.explosions) drawExplosion(ctx, e.pos, (state.nowMs - e.bornAtMs) / e.durationMs);
 
@@ -69,8 +74,8 @@ function drawShip(ctx: CanvasRenderingContext2D, state: GameState, opts: RenderO
   }
 
   const nose = add(ship.pos, mul(fromAngle(ship.angle), ship.radius + 8));
-  const left = add(ship.pos, mul(fromAngle(ship.angle + 2.45), ship.radius));
-  const right = add(ship.pos, mul(fromAngle(ship.angle - 2.45), ship.radius));
+  const left = add(ship.pos, mul(fromAngle(ship.angle + SHIP_WING_ANGLE), ship.radius));
+  const right = add(ship.pos, mul(fromAngle(ship.angle - SHIP_WING_ANGLE), ship.radius));
 
   ctx.shadowBlur = 12;
   ctx.beginPath();
@@ -94,6 +99,25 @@ function drawThrustFlame(ctx: CanvasRenderingContext2D, ship: Ship, nowMs: numbe
   ctx.beginPath();
   ctx.moveTo(ship.pos.x, ship.pos.y);
   ctx.lineTo(tail.x, tail.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDebris(ctx: CanvasRenderingContext2D, debris: Debris, state: GameState) {
+  const elapsed = state.nowMs - debris.bornAtMs;
+  const life = elapsed / debris.durationMs;
+  if (life >= 1) return;
+
+  const t = elapsed / 1000;
+  const a = wrapPosition(add(debris.a, mul(debris.vel, t)), state.width, state.height);
+  const b = wrapPosition(add(debris.b, mul(debris.vel, t)), state.width, state.height);
+
+  ctx.save();
+  ctx.globalAlpha = 1 - life;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
   ctx.stroke();
   ctx.restore();
 }
