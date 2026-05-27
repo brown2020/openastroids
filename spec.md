@@ -54,7 +54,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Level waves | ✅ | 4 + floor(level × 0.75) large asteroids, cap 12 |
 | Asteroid cap (26 total) | ❌ | No global cap on screen count |
 | Flying saucers | ❌ | Not implemented |
-| Sound / music | ❌ | Silent |
+| Sound / music | ✅ | Synthesized Web Audio SFX; mute toggle; localStorage preference |
 | High score persistence | ✅ | Single best score in `localStorage` (`openastroids-highscore`) |
 | Extra life at 10k | ✅ | `nextExtraLifeAt` threshold in `game.ts` |
 | Thrust flame | ✅ | Flickering exhaust line when thrusting; static when reduced-motion |
@@ -110,7 +110,7 @@ Next.js App Router
 
 | Limitation | Source |
 |------------|--------|
-| No audio | By omission — largest gap vs. original |
+| No audio | Resolved in M7 — heartbeat tension (M8) still pending |
 | No saucers | By omission — removes late-game pressure |
 | Touch detection hides keyboard hints on touchscreen laptops | `ontouchstart` / `maxTouchPoints` heuristic in `page.tsx` |
 | No automated tests | No test framework or scripts |
@@ -232,17 +232,21 @@ Ordered by product impact and dependency. Each item is sized for one clean commi
 
 ---
 
-### Milestone 7 — Web Audio sound effects
+### Milestone 7 — Web Audio sound effects ✅
+
+**Status:** Complete (May 2026)
+
+**Implementation note:** Added `audio.ts` with synthesized Web Audio tones (fire, thrust loop, size-variant explosions, ship death, game over, extra life). `StepResult` exposes `didFire`, `asteroidHits`, and `extraLivesGained` for the rAF loop. AudioContext resumes on Start/Enter; mute toggle in HUD persists to `openastroids-muted` in localStorage. Privacy policy updated.
 
 **User value:** Audio feedback transforms feel; addresses the largest sensory gap.
 
 **Implementation intent:** Add `src/lib/openastroids/audio.ts` — Web Audio API oscillators/noise for fire, thrust (loop while held), asteroid explosions (size-variant), ship death, extra life. Gate on user gesture (first Start click) for autoplay policy. Mute toggle in HUD. No asset files required (synthesized retro tones).
 
 **Acceptance criteria:**
-- Fire, thrust, explosion, and game-over sounds play during gameplay
-- Audio initializes after user starts game (browser policy compliant)
-- Mute preference persists in session or localStorage
-- Silent by default until first interaction if required by browser
+- [x] Fire, thrust, explosion, and game-over sounds play during gameplay
+- [x] Audio initializes after user starts game (browser policy compliant)
+- [x] Mute preference persists in session or localStorage
+- [x] Silent by default until first interaction if required by browser
 
 ---
 

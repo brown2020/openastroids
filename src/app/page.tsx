@@ -2,6 +2,12 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
+  createGameAudio,
+  readMutedPreference,
+  writeMutedPreference,
+  type GameAudio,
+} from "@/lib/openastroids/audio";
+import {
   createInitialState,
   formatRunTimeMs,
   resizeState,
@@ -44,8 +50,9 @@ export default function Home() {
   const seedRef = useRef<number>(0);
   const hudLastUpdateMsRef = useRef(0);
   const prefersReducedMotionRef = useRef(false);
+  const audioRef = useRef<GameAudio | null>(null);
 
-  const { status, score, lives, level, asteroidsDestroyed, activeMs, highScore, isTouch, setHud, setHighScore, setIsTouch } =
+  const { status, score, lives, level, asteroidsDestroyed, activeMs, highScore, isTouch, isMuted, setHud, setHighScore, setIsTouch, setMuted } =
     useOpenAstroidsStore();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -54,7 +61,26 @@ export default function Home() {
 
   useEffect(() => {
     setHighScore(readHighScore());
-  }, [setHighScore]);
+    const muted = readMutedPreference();
+    setMuted(muted);
+    const audio = createGameAudio(muted);
+    audioRef.current = audio;
+    return () => {
+      audio?.dispose();
+      audioRef.current = null;
+    };
+  }, [setHighScore, setMuted]);
+
+  const resumeAudio = useCallback(() => {
+    void audioRef.current?.resume();
+  }, []);
+
+  const toggleMuted = useCallback(() => {
+    const next = !useOpenAstroidsStore.getState().isMuted;
+    setMuted(next);
+    writeMutedPreference(next);
+    audioRef.current?.setMuted(next);
+  }, [setMuted]);
 
   useEffect(() => {
     setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
@@ -123,8 +149,23 @@ export default function Home() {
       const input: InputState = { ...inputRef.current, isHyperspace: hyperspace };
 
       const seed = (seedRef.current + frameRef.current) >>> 0;
-      const { next } = step(game, input, nowMs, seed);
+      const result = step(game, input, nowMs, seed);
+      const { next } = result;
       gameRef.current = next;
+
+      const audio = audioRef.current;
+      if (audio) {
+        if (result.didFire) audio.playFire();
+        for (const size of result.asteroidHits) {
+          audio.playExplosion(size);
+        }
+        if (result.didShipExplode) audio.playShipDeath();
+        if (result.extraLivesGained > 0) audio.playExtraLife();
+        if (next.status === "gameover" && game.status !== "gameover") {
+          audio.playGameOver();
+        }
+        audio.setThrustActive(next.status === "running" && input.isThrusting);
+      }
 
       // Clear queued hyperspace when game is not running (prevents unexpected teleport on resume)
       if (next.status !== "running") {
@@ -183,6 +224,7 @@ export default function Home() {
     if (!g || g.status !== "running") return;
     resetInputState(inputRef.current, queuedHyperspaceRef);
     gameRef.current = togglePause(g);
+    audioRef.current?.setThrustActive(false);
     updateHud();
   }, [updateHud]);
 
@@ -225,6 +267,7 @@ export default function Home() {
         if (g.status === "running") {
           resetInputState(inputRef.current, queuedHyperspaceRef);
           gameRef.current = togglePause(g);
+          audioRef.current?.setThrustActive(false);
         } else if (g.status === "paused") {
           gameRef.current = togglePause(g);
         }
@@ -237,6 +280,7 @@ export default function Home() {
           doRestart();
           return;
         }
+        resumeAudio();
         gameRef.current = startGame(g, performance.now());
         updateHud();
       }
@@ -257,14 +301,15 @@ export default function Home() {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [updateHud, doRestart]);
+  }, [updateHud, doRestart, resumeAudio]);
 
   const doStart = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
+    resumeAudio();
     gameRef.current = startGame(g, performance.now());
     updateHud();
-  }, [updateHud]);
+  }, [updateHud, resumeAudio]);
 
   const doPause = useCallback(() => {
     const g = gameRef.current;
@@ -272,6 +317,7 @@ export default function Home() {
     if (g.status === "running") {
       resetInputState(inputRef.current, queuedHyperspaceRef);
       gameRef.current = togglePause(g);
+      audioRef.current?.setThrustActive(false);
     } else if (g.status === "paused") {
       gameRef.current = togglePause(g);
     }
@@ -314,6 +360,7 @@ export default function Home() {
         </div>
 
         <div className="pointer-events-auto flex items-center gap-2">
+          <MuteButton isMuted={isMuted} onToggle={toggleMuted} />
           <GameButton onClick={doStart} disabled={status === "running" || status === "gameover"}>
             {status === "paused" ? "Resume" : "Start"}
           </GameButton>
@@ -452,6 +499,20 @@ const TouchControls = memo(function TouchControls(props: TouchControlsProps) {
         <TapButton label="JUMP" ariaLabel="Hyperspace jump" onTap={props.onHyperspace} />
       </div>
     </div>
+  );
+});
+
+const MuteButton = memo(function MuteButton(props: { isMuted: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={props.onToggle}
+      aria-pressed={props.isMuted}
+      aria-label={props.isMuted ? "Unmute game sound" : "Mute game sound"}
+      className="select-none rounded-full border border-emerald-200/20 bg-black/40 px-3 py-2 text-sm text-emerald-50 backdrop-blur transition hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
+    >
+      {props.isMuted ? "Unmute" : "Mute"}
+    </button>
   );
 });
 

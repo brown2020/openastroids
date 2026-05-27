@@ -83,4 +83,10 @@ export type StepResult = {
   next: GameState;
   didShipExplode: boolean;
   didLevelAdvance: boolean;
+  /** True when a player bullet was created this frame */
+  didFire: boolean;
+  /** Sizes of asteroids destroyed by player bullets this frame */
+  asteroidHits: AsteroidSize[];
+  /** Bonus lives awarded from score thresholds this frame */
+  extraLivesGained: number;
 };

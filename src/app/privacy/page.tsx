@@ -39,13 +39,15 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Local Storage</h2>
             <p className="mt-2">
-              The game stores one number locally in your browser: your best high score (key:{" "}
+              The game stores two values locally in your browser: your best high score (key:{" "}
               <code className="rounded bg-black/40 px-1 py-0.5 text-emerald-100">openastroids-highscore</code>
-              ). This value never leaves your device and is not sent over the network.
+              ) and your sound mute preference (key:{" "}
+              <code className="rounded bg-black/40 px-1 py-0.5 text-emerald-100">openastroids-muted</code>
+              ). These values never leave your device and are not sent over the network.
             </p>
             <p className="mt-2">
               Clearing site data, using a private browsing window, or blocking storage in your browser
-              will reset or prevent saving your high score. In-progress game state is not saved and is
+              will reset or prevent saving your high score and mute setting. In-progress game state is not saved and is
               lost when you refresh or close the page.
             </p>
           </section>
@@ -53,7 +55,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Third Parties</h2>
             <p className="mt-2">
-              We do not share any data with third parties. The high score stays on your device only.
+              We do not share any data with third parties. The high score and mute preference stay on your device only.
             </p>
           </section>
 

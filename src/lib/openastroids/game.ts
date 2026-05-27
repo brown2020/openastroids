@@ -184,8 +184,18 @@ export function resetGame(prev: GameState, nowMs: number, seed?: number): GameSt
  */
 export function step(prev: GameState, input: InputState, nowMs: number, seed: number): StepResult {
   const rng = createRng(seed);
+  const idle: Pick<StepResult, "didFire" | "asteroidHits" | "extraLivesGained"> = {
+    didFire: false,
+    asteroidHits: [],
+    extraLivesGained: 0,
+  };
   if (prev.status !== "running") {
-    return { next: { ...prev, nowMs, lastFrameMs: nowMs }, didShipExplode: false, didLevelAdvance: false };
+    return {
+      next: { ...prev, nowMs, lastFrameMs: nowMs },
+      didShipExplode: false,
+      didLevelAdvance: false,
+      ...idle,
+    };
   }
 
   const dtMs = clamp(nowMs - prev.lastFrameMs, 0, 50);
@@ -213,6 +223,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   }
 
   // ship firing — max 4 on screen; cooldown unchanged when at limit
+  let didFire = false;
   if (input.isFiring && nowMs >= ship.canFireAtMs && bullets.length < MAX_BULLETS_ON_SCREEN) {
     const dir = fromAngle(ship.angle);
     const muzzle = add(ship.pos, mul(dir, ship.radius + 8));
@@ -224,11 +235,13 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
       bornAtMs: nowMs,
     });
     ship = { ...ship, canFireAtMs: nowMs + BULLET_COOLDOWN_MS };
+    didFire = true;
   }
 
   // collisions: bullets vs asteroids
   const hitAsteroids = new Set<string>();
   const spentBullets = new Set<string>();
+  const asteroidHits: AsteroidSize[] = [];
   let score = prev.score;
   const spawnedAsteroids: Asteroid[] = [];
 
@@ -243,6 +256,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
         spawnedAsteroids.push(...split.spawned);
         score += split.score;
         asteroidsDestroyed += 1;
+        asteroidHits.push(a.size);
         explosions = explosions.concat({
           id: rid(rng),
           pos: a.pos,
@@ -259,7 +273,8 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
 
   let lives = prev.lives;
   let nextExtraLifeAt = prev.nextExtraLifeAt;
-  ({ lives, nextExtraLifeAt } = applyScoreExtraLives(score, lives, nextExtraLifeAt));
+  let extraLivesGained = 0;
+  ({ lives, nextExtraLifeAt, extraLivesGained } = applyScoreExtraLives(score, lives, nextExtraLifeAt));
 
   // collisions: ship vs asteroids
   const isInvincible = nowMs < ship.invincibleUntilMs;
@@ -290,6 +305,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
             },
             didShipExplode: true,
             didLevelAdvance: false,
+            didFire,
+            asteroidHits,
+            extraLivesGained,
           };
         }
         ship = createFreshShip({ width: prev.width, height: prev.height, nowMs, keepAngle: ship.angle });
@@ -312,6 +330,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
           },
           didShipExplode: true,
           didLevelAdvance: false,
+          didFire,
+          asteroidHits,
+          extraLivesGained,
         };
       }
     }
@@ -342,7 +363,7 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     asteroidsDestroyed,
     activeMs,
   };
-  return { next, didShipExplode, didLevelAdvance };
+  return { next, didShipExplode, didLevelAdvance, didFire, asteroidHits, extraLivesGained };
 }
 
 /** Formats active run time for HUD display (m:ss). */

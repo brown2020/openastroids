@@ -148,9 +148,30 @@ describe("step", () => {
       asteroids: [asteroid],
     });
 
-    const { next } = step(state, NO_INPUT, 1000, 12345);
+    const { next, asteroidHits } = step(state, NO_INPUT, 1000, 12345);
     assert.equal(next.asteroidsDestroyed, 3);
     assert.equal(next.score, 20);
+    assert.deepEqual(asteroidHits, [3]);
+  });
+
+  it("reports didFire when a bullet is created", () => {
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 990,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: -Math.PI / 2,
+        radius: 14,
+        invincibleUntilMs: 99999,
+        canFireAtMs: 0,
+      },
+      bullets: [],
+    });
+
+    const { next, didFire } = step(state, { ...NO_INPUT, isFiring: true }, 1000, 99);
+    assert.equal(next.bullets.length, 1);
+    assert.equal(didFire, true);
   });
 
   it("does not fire when four bullets are already on screen", () => {
@@ -175,8 +196,9 @@ describe("step", () => {
       bullets,
     });
 
-    const { next } = step(state, { ...NO_INPUT, isFiring: true }, 1000, 99);
+    const { next, didFire } = step(state, { ...NO_INPUT, isFiring: true }, 1000, 99);
     assert.equal(next.bullets.length, 4);
+    assert.equal(didFire, false);
     assert.equal(next.ship.canFireAtMs, 0, "cooldown should not advance when at bullet limit");
   });
 

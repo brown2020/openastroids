@@ -9,11 +9,13 @@ type HudState = {
   activeMs: number;
   highScore: number;
   isTouch: boolean;
+  isMuted: boolean;
   setHud: (
     next: Pick<HudState, "status" | "score" | "lives" | "level" | "asteroidsDestroyed" | "activeMs">,
   ) => void;
   setHighScore: (highScore: number) => void;
   setIsTouch: (isTouch: boolean) => void;
+  setMuted: (isMuted: boolean) => void;
 };
 
 export const useOpenAstroidsStore = create<HudState>((set) => ({
@@ -25,7 +27,9 @@ export const useOpenAstroidsStore = create<HudState>((set) => ({
   activeMs: 0,
   highScore: 0,
   isTouch: false,
+  isMuted: false,
   setHud: (next) => set(next),
   setHighScore: (highScore) => set({ highScore }),
   setIsTouch: (isTouch) => set({ isTouch }),
+  setMuted: (isMuted) => set({ isMuted }),
 }));
