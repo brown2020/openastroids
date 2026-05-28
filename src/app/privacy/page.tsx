@@ -17,37 +17,45 @@ export default function PrivacyPage() {
         </Link>
 
         <h1 className="mt-6 text-2xl font-semibold tracking-wide">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-emerald-100/70">Last updated: February 2025</p>
+        <p className="mt-2 text-sm text-emerald-100/70">Last updated: May 2026</p>
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-emerald-100/90">
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Summary</h2>
             <p className="mt-2">
               OpenAstroids is a privacy-respecting game. We do not collect, store, or transmit any
-              personal data.
+              personal data to our servers.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Data Collection</h2>
             <p className="mt-2">
-              <strong>We collect nothing.</strong> OpenAstroids runs entirely in your browser. No
-              analytics, no tracking pixels, no cookies, no server-side data storage.
+              <strong>We collect nothing on our servers.</strong> OpenAstroids runs entirely in your
+              browser. No analytics, no tracking pixels, no cookies, and no server-side data storage.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Local Storage</h2>
             <p className="mt-2">
-              The game may use your browser&apos;s local storage to save preferences (such as high
-              scores) locally on your device. This data never leaves your browser.
+              The game stores two values locally in your browser: your best high score (key:{" "}
+              <code className="rounded bg-black/40 px-1 py-0.5 text-emerald-100">openastroids-highscore</code>
+              ) and your sound mute preference (key:{" "}
+              <code className="rounded bg-black/40 px-1 py-0.5 text-emerald-100">openastroids-muted</code>
+              ). These values never leave your device and are not sent over the network.
+            </p>
+            <p className="mt-2">
+              Clearing site data, using a private browsing window, or blocking storage in your browser
+              will reset or prevent saving your high score and mute setting. In-progress game state is not saved and is
+              lost when you refresh or close the page.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-medium text-emerald-50">Third Parties</h2>
             <p className="mt-2">
-              We do not share any data with third parties because we do not collect any data.
+              We do not share any data with third parties. The high score and mute preference stay on your device only.
             </p>
           </section>
 

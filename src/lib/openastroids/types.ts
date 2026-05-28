@@ -44,6 +44,16 @@ export type Explosion = {
   durationMs: number;
 };
 
+/** Ship hull fragment — a line segment that flies outward after the ship is destroyed */
+export type Debris = {
+  id: string;
+  a: Vec2;
+  b: Vec2;
+  vel: Vec2;
+  bornAtMs: number;
+  durationMs: number;
+};
+
 export type GameStatus = "ready" | "running" | "paused" | "gameover";
 
 export type GameState = {
@@ -55,10 +65,17 @@ export type GameState = {
   lives: number;
   score: number;
   level: number;
+  /** Asteroids destroyed by player bullets this run */
+  asteroidsDestroyed: number;
+  /** Active gameplay time accumulated while running (excludes pause), in ms */
+  activeMs: number;
+  /** Score at which the next bonus life is awarded (10k, 20k, …) */
+  nextExtraLifeAt: number;
   ship: Ship;
   bullets: Bullet[];
   asteroids: Asteroid[];
   explosions: Explosion[];
+  debris: Debris[];
   lastFrameMs: number;
 };
 
@@ -66,4 +83,10 @@ export type StepResult = {
   next: GameState;
   didShipExplode: boolean;
   didLevelAdvance: boolean;
+  /** True when a player bullet was created this frame */
+  didFire: boolean;
+  /** Sizes of asteroids destroyed by player bullets this frame */
+  asteroidHits: AsteroidSize[];
+  /** Bonus lives awarded from score thresholds this frame */
+  extraLivesGained: number;
 };

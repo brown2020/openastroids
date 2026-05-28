@@ -35,12 +35,8 @@ export function fromAngle(angleRad: number): Vec2 {
  * @returns Position wrapped to stay within canvas bounds
  */
 export function wrapPosition(pos: Vec2, width: number, height: number): Vec2 {
-  let x = pos.x;
-  let y = pos.y;
-  if (x < 0) x += width;
-  if (x >= width) x -= width;
-  if (y < 0) y += height;
-  if (y >= height) y -= height;
+  const x = ((pos.x % width) + width) % width;
+  const y = ((pos.y % height) + height) % height;
   return { x, y };
 }
 
