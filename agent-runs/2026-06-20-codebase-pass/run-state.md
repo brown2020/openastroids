@@ -11,22 +11,22 @@
 
 ## Current State
 
-- Phase: Execute Fixes and Improvements
-- Task: T-005
+- Phase: Package and Dead-Code Cleanup
+- Task: T-006
 - Status: Open
-- Last command: `npm run build`
-- Last result: pass after lint/typecheck/test passed
-- Last pushed commit: 556b3e8f49c97954bdac1dcba779a0d84a9b37ba
-- Branch sync: local `dev` matches `origin/dev` at 556b3e8f49c97954bdac1dcba779a0d84a9b37ba before source/report edits
-- Working tree: current dirty files are owned by Execute Fixes task
-- Next action: Commit and push F-001/F-002 fix batch
+- Last command: `npm audit --audit-level=moderate`
+- Last result: 2 moderate Next/PostCSS advisories remain; force fix unsafe
+- Last pushed commit: 58d49c2b532b443cc13c6a794d0284081308516c
+- Branch sync: local `dev` matches `origin/dev` at 58d49c2b532b443cc13c6a794d0284081308516c before package/report edits
+- Working tree: current dirty files are owned by Package and Dead-Code Cleanup task
+- Next action: Commit and push package cleanup
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `src/app/page.tsx` | In-scope source | F-001/F-002 lifecycle fix |
-| `agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md` | Safe-to-commit | Execution report |
+| `package-lock.json` | In-scope package cleanup | Safe patch/minor dependency updates |
+| `agent-runs/2026-06-20-codebase-pass/05-package-and-dead-code-cleanup.md` | Safe-to-commit | Package cleanup report |
 | `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update |
 | `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status update |
 
@@ -37,4 +37,4 @@
 ## Deferred Items
 
 - F-004 browser/e2e automation deferred as medium-effort test infrastructure.
-- Package cleanup F-003 deferred to package phase.
+- Remaining Next/PostCSS audit advisory deferred until safe stable fix exists; `npm audit fix --force` would downgrade Next.
