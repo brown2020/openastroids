@@ -11,23 +11,23 @@
 
 ## Current State
 
-- Phase: Baseline Validation
-- Task: T-003
+- Phase: Findings Backlog
+- Task: T-004
 - Status: Open
-- Last command: `git status --short`
-- Last result: clean before baseline report edit
-- Last pushed commit: a0ea46d57296b237e663394eb01e9c68e17c007b
-- Branch sync: local `dev` matches `origin/dev` at a0ea46d57296b237e663394eb01e9c68e17c007b
-- Working tree: current dirty files are owned by Baseline Validation report task
-- Next action: Commit and push Baseline Validation report
+- Last command: `git diff --check`
+- Last result: pass after `npm run lint` passed
+- Last pushed commit: 9df83d009166db1a3f7eebd0ce22e2d1dd7417d1
+- Branch sync: local `dev` matches `origin/dev` at 9df83d009166db1a3f7eebd0ce22e2d1dd7417d1
+- Working tree: current dirty files are owned by Findings Backlog report task
+- Next action: Commit and push Findings Backlog report
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/02-baseline-validation.md` | Safe-to-commit | Baseline validation report |
+| `agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md` | Safe-to-commit | Findings backlog report |
 | `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status and package findings |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status and finding IDs |
 
 ## Blockers
 
@@ -35,4 +35,5 @@
 
 ## Deferred Items
 
-- Package cleanup: evaluate patch/minor updates and audit findings after findings backlog.
+- F-004 browser/e2e automation deferred as medium-effort test infrastructure.
+- Package cleanup F-003 deferred to package phase.
