@@ -36,6 +36,8 @@ src/
 │   ├── game.ts               # State machine, physics, collisions, spawning
 │   ├── math.ts               # Vec2 math, wrapPosition, dist
 │   ├── render.ts             # Canvas rendering, CRT overlay, stars
+│   ├── audio.ts              # Synthesized Web Audio effects and mute storage
+│   ├── high-score.ts         # Local-only high score persistence
 │   └── random.ts             # Mulberry32 PRNG, entity IDs
 ├── stores/
 │   └── openastroids-store.ts # Zustand — HUD bridge only
@@ -75,9 +77,13 @@ Browser input (keyboard/touch)
 - Bullets: forward from ship nose, 900 ms lifetime, screen wrap, 180 ms cooldown, **max 4 on screen**
 - Asteroids: 3 sizes, split on hit (20/50/100 pts), unique polygon shapes
 - Lives: 3 starting; invincibility 1.4 s after spawn/respawn with blink
+- Extra lives: +1 at each 10,000-point threshold
 - Hyperspace: random teleport, brief invincibility, can collide on landing
 - Levels: clearing asteroids spawns next wave (4 + level scaling, cap 12 large)
 - Pause/resume (P, button); auto-pause on tab hidden; restart with new seed
+- High score: best score persisted locally in `localStorage`
+- Game-over stats: score, best score, level, time survived, asteroids destroyed
+- Audio: synthesized Web Audio effects; mute preference persisted locally
 - Visual: emerald vector lines, glow, star field, CRT scanlines/vignette (disabled when `prefers-reduced-motion`)
 - Touch: hold buttons for rotate/thrust/fire, tap for hyperspace
 - Static pages: `/about`, `/privacy`, `/terms`
@@ -102,7 +108,7 @@ Run before committing code changes:
 npm run lint && npm run typecheck && npm run test && npm run build
 ```
 
-There is **no test suite** and no `npm test` script. Do not add watch-mode or interactive commands in autonomous runs.
+Unit tests live in `src/lib/openastroids/*.test.ts` and run via `npm run test`. Do not add watch-mode or interactive commands in autonomous runs.
 
 ## Non-interactive testing rules
 
@@ -121,6 +127,7 @@ There is **no test suite** and no `npm test` script. Do not add watch-mode or in
 - **Paths:** Use `@/` alias for `src/`.
 - **Comments:** Only for non-obvious logic; existing files use JSDoc on exported engine functions.
 - **Generated files:** Do not edit `.next/`, `next-env.d.ts`, or lockfile unless dependencies change.
+- **Browser storage:** Keep privacy copy aligned with local-only storage keys `openastroids-highscore` and `openastroids-muted`.
 
 ## TypeScript and lint expectations
 
@@ -152,7 +159,7 @@ Not applicable. No authentication or protected routes.
 
 ## Testing expectations
 
-No automated tests exist. Manual smoke test after gameplay changes:
+Automated unit tests cover pure engine, math, render helpers, audio storage, high score, and run stats. Manual smoke test after gameplay/UI changes:
 
 1. `npm run dev` — page loads, canvas renders
 2. Start game — ship moves, fires, asteroids split
@@ -170,7 +177,7 @@ When adding engine logic, prefer pure functions in `game.ts`/`math.ts` that coul
 | `src/app/page.tsx` | rAF loop timing, input edge cases, HUD sync |
 | `src/lib/openastroids/render.ts` | Canvas performance; star cache keyed on dimensions |
 | `src/lib/openastroids/types.ts` | Breaking changes ripple through engine and HUD |
-| `src/app/privacy/page.tsx` | Claims about local storage — **no localStorage is implemented yet** (see `spec.md`) |
+| `src/app/privacy/page.tsx` | Claims about local storage must match `high-score.ts` and `audio.ts` |
 
 Do not add backend services, env vars, or auth without an explicit product decision in `spec.md`.
 

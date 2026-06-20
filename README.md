@@ -8,12 +8,6 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open `http://localhost:3000` with your browser to play.
@@ -35,6 +29,9 @@ Use the on-screen buttons for rotate, thrust, fire, and hyperspace.
 
 - Game logic lives in `src/lib/openastroids/*` (pure TypeScript).
 - UI lives in `src/app/page.tsx` (single client canvas).
+- Use npm; this repo tracks `package-lock.json`.
+- Validate with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`.
+- High score and mute preference are stored only in this browser's `localStorage`.
 
 ## License
 

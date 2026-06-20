@@ -110,11 +110,11 @@ Next.js App Router
 
 | Limitation | Source |
 |------------|--------|
-| No audio | Resolved in M7 — heartbeat tension (M8) still pending |
+| Heartbeat tension audio pending | Milestone 8; sound effects exist but no continuous asteroid-count pulse |
 | No saucers | By omission — removes late-game pressure |
 | Touch detection hides keyboard hints on touchscreen laptops | `ontouchstart` / `maxTouchPoints` heuristic in `page.tsx` |
-| No automated tests | No test framework or scripts |
-| Enter does not restart from game over | Only Restart button / flow from overlay |
+| No browser/e2e automation | Unit tests exist for engine/util helpers; gameplay smoke remains manual |
+| Asteroid cap (26 total) missing | Feature inventory notes no global on-screen asteroid cap |
 
 ---
 
