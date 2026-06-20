@@ -80,7 +80,8 @@ export default function Home() {
     setMuted(next);
     writeMutedPreference(next);
     audioRef.current?.setMuted(next);
-  }, [setMuted]);
+    if (!next) resumeAudio();
+  }, [resumeAudio, setMuted]);
 
   useEffect(() => {
     setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
@@ -269,7 +270,8 @@ export default function Home() {
           gameRef.current = togglePause(g);
           audioRef.current?.setThrustActive(false);
         } else if (g.status === "paused") {
-          gameRef.current = togglePause(g);
+          resumeAudio();
+          gameRef.current = startGame(g, performance.now());
         }
         updateHud();
       }
@@ -319,10 +321,11 @@ export default function Home() {
       gameRef.current = togglePause(g);
       audioRef.current?.setThrustActive(false);
     } else if (g.status === "paused") {
-      gameRef.current = togglePause(g);
+      resumeAudio();
+      gameRef.current = startGame(g, performance.now());
     }
     updateHud();
-  }, [updateHud]);
+  }, [resumeAudio, updateHud]);
 
   // Touch handlers use direct mutation for better performance (no object allocation)
   const handleRotateLeft = useCallback(() => { inputRef.current.rotateDir = -1; }, []);

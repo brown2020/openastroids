@@ -11,23 +11,24 @@
 
 ## Current State
 
-- Phase: Findings Backlog
-- Task: T-004
+- Phase: Execute Fixes and Improvements
+- Task: T-005
 - Status: Open
-- Last command: `git diff --check`
-- Last result: pass after `npm run lint` passed
-- Last pushed commit: 9df83d009166db1a3f7eebd0ce22e2d1dd7417d1
-- Branch sync: local `dev` matches `origin/dev` at 9df83d009166db1a3f7eebd0ce22e2d1dd7417d1
-- Working tree: current dirty files are owned by Findings Backlog report task
-- Next action: Commit and push Findings Backlog report
+- Last command: `npm run build`
+- Last result: pass after lint/typecheck/test passed
+- Last pushed commit: 556b3e8f49c97954bdac1dcba779a0d84a9b37ba
+- Branch sync: local `dev` matches `origin/dev` at 556b3e8f49c97954bdac1dcba779a0d84a9b37ba before source/report edits
+- Working tree: current dirty files are owned by Execute Fixes task
+- Next action: Commit and push F-001/F-002 fix batch
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md` | Safe-to-commit | Findings backlog report |
+| `src/app/page.tsx` | In-scope source | F-001/F-002 lifecycle fix |
+| `agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md` | Safe-to-commit | Execution report |
 | `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status and finding IDs |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status update |
 
 ## Blockers
 
