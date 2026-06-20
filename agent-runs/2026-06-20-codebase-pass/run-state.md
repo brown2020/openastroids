@@ -11,24 +11,23 @@
 
 ## Current State
 
-- Phase: Preflight and Repo Docs
-- Task: T-002
+- Phase: Baseline Validation
+- Task: T-003
 - Status: Open
-- Last command: `git diff --check`
-- Last result: pass after `npm run lint` passed
-- Last pushed commit: 59c4a9dc4ab18b40535633aa685c31ccd0ebc58d
-- Branch sync: local `dev` matches `origin/dev` at 59c4a9dc4ab18b40535633aa685c31ccd0ebc58d
-- Working tree: clean before run folder creation; current dirty files are owned by Preflight docs/report task
-- Next action: Commit and push Preflight and Repo Docs
+- Last command: `git status --short`
+- Last result: clean before baseline report edit
+- Last pushed commit: a0ea46d57296b237e663394eb01e9c68e17c007b
+- Branch sync: local `dev` matches `origin/dev` at a0ea46d57296b237e663394eb01e9c68e17c007b
+- Working tree: current dirty files are owned by Baseline Validation report task
+- Next action: Commit and push Baseline Validation report
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `AGENTS.md` | Safe-to-commit | Preflight repo guidance current-state update |
-| `README.md` | Safe-to-commit | Preflight npm/test/storage guidance update |
-| `spec.md` | Safe-to-commit | Preflight current limitations update |
-| `agent-runs/2026-06-20-codebase-pass/*` | Safe-to-commit | Required `$sb-cbi` run reports and queue |
+| `agent-runs/2026-06-20-codebase-pass/02-baseline-validation.md` | Safe-to-commit | Baseline validation report |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status and package findings |
 
 ## Blockers
 
@@ -36,4 +35,4 @@
 
 ## Deferred Items
 
-- None.
+- Package cleanup: evaluate patch/minor updates and audit findings after findings backlog.
