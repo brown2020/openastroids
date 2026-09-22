@@ -1,378 +1,58 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import {
-  createGameAudio,
-  readMutedPreference,
-  writeMutedPreference,
-  type GameAudio,
-} from "@/lib/openastroids/audio";
-import {
-  createInitialState,
-  formatRunTimeMs,
-  resizeState,
-  resetGame,
-  startGame,
-  step,
-  togglePause,
-} from "@/lib/openastroids/game";
-import { maybeUpdateHighScore, readHighScore } from "@/lib/openastroids/high-score";
-import { render } from "@/lib/openastroids/render";
-import type { GameState, InputState } from "@/lib/openastroids/types";
-import { useOpenAstroidsStore } from "@/stores/openastroids-store";
-
-const EMPTY_INPUT: InputState = { isThrusting: false, rotateDir: 0, isFiring: false, isHyperspace: false };
-
-function resetInputState(input: InputState, queuedHyperspace: { current: boolean }) {
-  input.isThrusting = false;
-  input.rotateDir = 0;
-  input.isFiring = false;
-  queuedHyperspace.current = false;
-}
-
-// HUD updates at ~13fps to reduce React re-renders while maintaining responsive feel
-const HUD_UPDATE_INTERVAL_MS = 75;
-
-// All keys that should prevent default browser behavior (e.g., page scroll)
-const GAME_KEYS = ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyD", "KeyP", "Enter", "ShiftLeft", "ShiftRight"];
-
-// 4:3 aspect ratio fallback if parent element is unavailable
-const FALLBACK_CANVAS_SIZE = { w: 800, h: 600 };
+import { GameHud } from "@/components/game-hud";
+import { GameOverOverlay, ReadyOverlay } from "@/components/game-overlays";
+import { DesktopControlsHint, TouchControls } from "@/components/touch-controls";
+import { useOpenAstroidsGame } from "@/hooks/use-openastroids-game";
 
 export default function Home() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const gameRef = useRef<GameState | null>(null);
-  const inputRef = useRef<InputState>({ ...EMPTY_INPUT });
-  const queuedHyperspaceRef = useRef(false);
-  const frameRef = useRef(0);
-  const seedRef = useRef<number>(0);
-  const hudLastUpdateMsRef = useRef(0);
-  const prefersReducedMotionRef = useRef(false);
-  const audioRef = useRef<GameAudio | null>(null);
-
-  const { status, score, lives, level, asteroidsDestroyed, activeMs, highScore, isTouch, isMuted, setHud, setHighScore, setIsTouch, setMuted } =
-    useOpenAstroidsStore();
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
-
-  useEffect(() => {
-    setHighScore(readHighScore());
-    const muted = readMutedPreference();
-    setMuted(muted);
-    const audio = createGameAudio(muted);
-    audioRef.current = audio;
-    return () => {
-      audio?.dispose();
-      audioRef.current = null;
-    };
-  }, [setHighScore, setMuted]);
-
-  const resumeAudio = useCallback(() => {
-    void audioRef.current?.resume();
-  }, []);
-
-  const toggleMuted = useCallback(() => {
-    const next = !useOpenAstroidsStore.getState().isMuted;
-    setMuted(next);
-    writeMutedPreference(next);
-    audioRef.current?.setMuted(next);
-    if (!next) resumeAudio();
-  }, [resumeAudio, setMuted]);
-
-  useEffect(() => {
-    setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  }, [setIsTouch]);
-
-  useEffect(() => {
-    prefersReducedMotionRef.current = prefersReducedMotion;
-  }, [prefersReducedMotion]);
-
-  useEffect(() => {
-    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handleChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    motionQuery.addEventListener("change", handleChange);
-    return () => motionQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    if (seedRef.current === 0) {
-      const buf = new Uint32Array(1);
-      crypto.getRandomValues(buf);
-      seedRef.current = buf[0] ?? 1;
-    }
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctxRef.current = ctx;
-
-    const measure = () => {
-      const parent = canvas.parentElement;
-      if (!parent) return FALLBACK_CANVAS_SIZE;
-      const rect = parent.getBoundingClientRect();
-      return { w: Math.max(1, Math.floor(rect.width)), h: Math.max(1, Math.floor(rect.height)) };
-    };
-
-    const syncSize = () => {
-      const { w, h } = measure();
-      // Cap DPR at 2.5x for performance; higher values rarely improve visual quality
-      // but significantly increase canvas memory and render time
-      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      gameRef.current = gameRef.current ? resizeState(gameRef.current, w, h) : createInitialState({ width: w, height: h, nowMs: performance.now(), seed: seedRef.current });
-    };
-
-    syncSize();
-    const ro = new ResizeObserver(syncSize);
-    if (canvas.parentElement) ro.observe(canvas.parentElement);
-
-    const tick = (nowMs: number) => {
-      frameRef.current += 1;
-      const game = gameRef.current;
-      const ctxNow = ctxRef.current;
-      if (!game || !ctxNow) {
-        rafRef.current = window.requestAnimationFrame(tick);
-        return;
-      }
-
-      const hyperspace = queuedHyperspaceRef.current;
-      queuedHyperspaceRef.current = false;
-      const input: InputState = { ...inputRef.current, isHyperspace: hyperspace };
-
-      const seed = (seedRef.current + frameRef.current) >>> 0;
-      const result = step(game, input, nowMs, seed);
-      const { next } = result;
-      gameRef.current = next;
-
-      const audio = audioRef.current;
-      if (audio) {
-        if (result.didFire) audio.playFire();
-        for (const size of result.asteroidHits) {
-          audio.playExplosion(size);
-        }
-        if (result.didShipExplode) audio.playShipDeath();
-        if (result.extraLivesGained > 0) audio.playExtraLife();
-        if (next.status === "gameover" && game.status !== "gameover") {
-          audio.playGameOver();
-        }
-        audio.setThrustActive(next.status === "running" && input.isThrusting);
-      }
-
-      // Clear queued hyperspace when game is not running (prevents unexpected teleport on resume)
-      if (next.status !== "running") {
-        queuedHyperspaceRef.current = false;
-      }
-
-      render(ctxNow, next, {
-        isCrt: !prefersReducedMotionRef.current,
-        isThrusting: next.status === "running" && input.isThrusting,
-        prefersReducedMotion: prefersReducedMotionRef.current,
-      });
-
-      // Force immediate HUD sync on game over to ensure final score is displayed
-      const isGameOver = next.status === "gameover" && game.status !== "gameover";
-      if (isGameOver || nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
-        hudLastUpdateMsRef.current = nowMs;
-        setHud({
-          status: next.status,
-          score: next.score,
-          lives: next.lives,
-          level: next.level,
-          asteroidsDestroyed: next.asteroidsDestroyed,
-          activeMs: next.activeMs,
-        });
-        if (isGameOver) {
-          setHighScore(maybeUpdateHighScore(next.score));
-        }
-      }
-
-      rafRef.current = window.requestAnimationFrame(tick);
-    };
-
-    rafRef.current = window.requestAnimationFrame(tick);
-    return () => {
-      ro.disconnect();
-      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    };
-  }, [setHud, setHighScore]);
-
-  const updateHud = useCallback(() => {
-    const g = gameRef.current;
-    if (!g) return;
-    setHud({
-      status: g.status,
-      score: g.score,
-      lives: g.lives,
-      level: g.level,
-      asteroidsDestroyed: g.asteroidsDestroyed,
-      activeMs: g.activeMs,
-    });
-  }, [setHud]);
-
-  const pauseGame = useCallback(() => {
-    const g = gameRef.current;
-    if (!g || g.status !== "running") return;
-    resetInputState(inputRef.current, queuedHyperspaceRef);
-    gameRef.current = togglePause(g);
-    audioRef.current?.setThrustActive(false);
-    updateHud();
-  }, [updateHud]);
-
-  // Auto-pause when tab becomes hidden
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) pauseGame();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [pauseGame]);
-
-  const doRestart = useCallback(() => {
-    const g = gameRef.current;
-    if (!g) return;
-    resetInputState(inputRef.current, queuedHyperspaceRef);
-    const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    seedRef.current = buf[0] ?? 1;
-    frameRef.current = 0;
-    gameRef.current = resetGame(g, performance.now(), seedRef.current);
-    updateHud();
-  }, [updateHud]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      // Prevent default for game keys to avoid page scrolling
-      if (GAME_KEYS.includes(e.code)) {
-        e.preventDefault();
-      }
-
-      if (e.code === "ArrowLeft" || e.code === "KeyA") inputRef.current.rotateDir = -1;
-      if (e.code === "ArrowRight" || e.code === "KeyD") inputRef.current.rotateDir = 1;
-      if (e.code === "ArrowUp" || e.code === "KeyW") inputRef.current.isThrusting = true;
-      if (e.code === "Space") inputRef.current.isFiring = true;
-      if (e.code === "ShiftLeft" || e.code === "ShiftRight") queuedHyperspaceRef.current = true;
-      if (e.code === "KeyP") {
-        const g = gameRef.current;
-        if (!g) return;
-        if (g.status === "running") {
-          resetInputState(inputRef.current, queuedHyperspaceRef);
-          gameRef.current = togglePause(g);
-          audioRef.current?.setThrustActive(false);
-        } else if (g.status === "paused") {
-          resumeAudio();
-          gameRef.current = startGame(g, performance.now());
-        }
-        updateHud();
-      }
-      if (e.code === "Enter") {
-        const g = gameRef.current;
-        if (!g) return;
-        if (g.status === "gameover") {
-          doRestart();
-          return;
-        }
-        resumeAudio();
-        gameRef.current = startGame(g, performance.now());
-        updateHud();
-      }
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "ArrowLeft" || e.code === "KeyA") {
-        if (inputRef.current.rotateDir === -1) inputRef.current.rotateDir = 0;
-      }
-      if (e.code === "ArrowRight" || e.code === "KeyD") {
-        if (inputRef.current.rotateDir === 1) inputRef.current.rotateDir = 0;
-      }
-      if (e.code === "ArrowUp" || e.code === "KeyW") inputRef.current.isThrusting = false;
-      if (e.code === "Space") inputRef.current.isFiring = false;
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [updateHud, doRestart, resumeAudio]);
-
-  const doStart = useCallback(() => {
-    const g = gameRef.current;
-    if (!g) return;
-    resumeAudio();
-    gameRef.current = startGame(g, performance.now());
-    updateHud();
-  }, [updateHud, resumeAudio]);
-
-  const doPause = useCallback(() => {
-    const g = gameRef.current;
-    if (!g) return;
-    if (g.status === "running") {
-      resetInputState(inputRef.current, queuedHyperspaceRef);
-      gameRef.current = togglePause(g);
-      audioRef.current?.setThrustActive(false);
-    } else if (g.status === "paused") {
-      resumeAudio();
-      gameRef.current = startGame(g, performance.now());
-    }
-    updateHud();
-  }, [resumeAudio, updateHud]);
-
-  // Touch handlers use direct mutation for better performance (no object allocation)
-  const handleRotateLeft = useCallback(() => { inputRef.current.rotateDir = -1; }, []);
-  const handleRotateRight = useCallback(() => { inputRef.current.rotateDir = 1; }, []);
-  const handleRotateStop = useCallback(() => { inputRef.current.rotateDir = 0; }, []);
-  const handleThrustStart = useCallback(() => { inputRef.current.isThrusting = true; }, []);
-  const handleThrustStop = useCallback(() => { inputRef.current.isThrusting = false; }, []);
-  const handleFireStart = useCallback(() => { inputRef.current.isFiring = true; }, []);
-  const handleFireStop = useCallback(() => { inputRef.current.isFiring = false; }, []);
-  const handleHyperspace = useCallback(() => { queuedHyperspaceRef.current = true; }, []);
+  const {
+    canvasRef,
+    status,
+    score,
+    lives,
+    level,
+    asteroidsDestroyed,
+    activeMs,
+    highScore,
+    isTouch,
+    isMuted,
+    toggleMuted,
+    doStart,
+    doPause,
+    doRestart,
+    handleRotateLeft,
+    handleRotateRight,
+    handleRotateStop,
+    handleThrustStart,
+    handleThrustStop,
+    handleFireStart,
+    handleFireStop,
+    handleHyperspace,
+  } = useOpenAstroidsGame();
 
   return (
-    <div className="relative h-dvh w-screen overflow-hidden bg-black text-emerald-50">
+    <main className="relative h-dvh w-screen overflow-hidden bg-black text-emerald-50">
       <div className="absolute inset-0">
-        <canvas ref={canvasRef} className="h-full w-full touch-none" aria-label="OpenAstroids game canvas" />
+        <canvas
+          ref={canvasRef}
+          className="h-full w-full touch-none"
+          role="img"
+          aria-label="OpenAstroids game canvas"
+        />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 p-4">
-        <div className="pointer-events-auto rounded-lg border border-emerald-200/20 bg-black/40 px-3 py-2 backdrop-blur">
-          <div className="text-xs tracking-wide text-emerald-100/70">OPENASTROIDS</div>
-          <div className="mt-1 flex gap-4 text-sm">
-            <div>
-              <span className="text-emerald-100/70">Score</span>{" "}
-              <span className="font-mono tabular-nums">{score}</span>
-            </div>
-            <div>
-              <span className="text-emerald-100/70">Lives</span>{" "}
-              <span className="font-mono tabular-nums">{lives}</span>
-            </div>
-            <div>
-              <span className="text-emerald-100/70">Level</span>{" "}
-              <span className="font-mono tabular-nums">{level}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="pointer-events-auto flex items-center gap-2">
-          <MuteButton isMuted={isMuted} onToggle={toggleMuted} />
-          <GameButton onClick={doStart} disabled={status === "running" || status === "gameover"}>
-            {status === "paused" ? "Resume" : "Start"}
-          </GameButton>
-          <GameButton onClick={doPause} disabled={status !== "running"}>
-            Pause
-          </GameButton>
-          <GameButton onClick={doRestart}>Restart</GameButton>
-        </div>
-      </div>
+      <GameHud
+        score={score}
+        lives={lives}
+        level={level}
+        status={status}
+        isMuted={isMuted}
+        onToggleMuted={toggleMuted}
+        onStart={doStart}
+        onPause={doPause}
+        onRestart={doRestart}
+      />
 
       {isTouch ? (
         <TouchControls
@@ -389,180 +69,17 @@ export default function Home() {
         <DesktopControlsHint />
       )}
 
-      {status === "ready" ? (
-        <div className="absolute inset-0 z-30 grid place-items-center bg-black/40 p-6">
-          <div className="max-w-md rounded-xl border border-emerald-200/20 bg-black/60 p-6 text-center backdrop-blur">
-            <div className="text-2xl font-semibold tracking-wide">OPENASTROIDS</div>
-            <p className="mt-2 text-sm text-emerald-100/80">
-              Destroy asteroids. Survive. Set a high score.
-            </p>
-            {highScore > 0 ? (
-              <p className="mt-2 text-sm text-emerald-100/70">
-                Best score: <span className="font-mono tabular-nums text-emerald-50">{highScore}</span>
-              </p>
-            ) : null}
-
-            <div className="mt-6 text-left text-xs text-emerald-100/70">
-              <div className="font-medium text-emerald-100/90 mb-2">Controls</div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div><span className="text-emerald-100">A/D</span> or <span className="text-emerald-100">←/→</span></div>
-                <div>Rotate</div>
-                <div><span className="text-emerald-100">W</span> or <span className="text-emerald-100">↑</span></div>
-                <div>Thrust</div>
-                <div><span className="text-emerald-100">Space</span></div>
-                <div>Fire</div>
-                <div><span className="text-emerald-100">Shift</span></div>
-                <div>Hyperspace (risky!)</div>
-                <div><span className="text-emerald-100">P</span></div>
-                <div>Pause</div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-center gap-2">
-              <GameButton onClick={doStart} autoFocus>Press Enter or Click to Start</GameButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
+      {status === "ready" ? <ReadyOverlay highScore={highScore} onStart={doStart} /> : null}
       {status === "gameover" ? (
-        <div className="absolute inset-0 z-30 grid place-items-center bg-black/40 p-6">
-          <div className="max-w-md rounded-xl border border-emerald-200/20 bg-black/60 p-6 text-center backdrop-blur">
-            <div className="text-xl font-semibold tracking-wide">GAME OVER</div>
-            <div className="mt-2 text-sm text-emerald-100/80">
-              Final score: <span className="font-mono tabular-nums">{score}</span>
-            </div>
-            <div className="mt-1 text-sm text-emerald-100/70">
-              Best score: <span className="font-mono tabular-nums text-emerald-50">{highScore}</span>
-              {score > 0 && score >= highScore ? (
-                <span className="ml-2 text-emerald-300">New record!</span>
-              ) : null}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-left text-sm text-emerald-100/80">
-              <div>
-                <span className="text-emerald-100/70">Level reached</span>
-                <div className="font-mono tabular-nums text-emerald-50">{level}</div>
-              </div>
-              <div>
-                <span className="text-emerald-100/70">Time survived</span>
-                <div className="font-mono tabular-nums text-emerald-50">{formatRunTimeMs(activeMs)}</div>
-              </div>
-              <div className="col-span-2">
-                <span className="text-emerald-100/70">Asteroids destroyed</span>
-                <div className="font-mono tabular-nums text-emerald-50">{asteroidsDestroyed}</div>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <GameButton onClick={doRestart} autoFocus>Play again</GameButton>
-            </div>
-            <div className="mt-4 text-xs text-emerald-100/60">
-              Tip: rotate with A/D (or ←/→), thrust with W (or ↑), shoot with Space, hyperspace with Shift, pause with P.
-            </div>
-          </div>
-        </div>
+        <GameOverOverlay
+          score={score}
+          highScore={highScore}
+          level={level}
+          activeMs={activeMs}
+          asteroidsDestroyed={asteroidsDestroyed}
+          onRestart={doRestart}
+        />
       ) : null}
-    </div>
+    </main>
   );
 }
-
-function DesktopControlsHint() {
-  return (
-    <div className="pointer-events-none absolute bottom-0 left-0 z-20 p-4">
-      <div className="rounded-lg border border-emerald-200/20 bg-black/40 px-3 py-2 text-xs text-emerald-100/70 backdrop-blur">
-        Controls: <span className="text-emerald-100">A/D</span> rotate, <span className="text-emerald-100">W</span> thrust,{" "}
-        <span className="text-emerald-100">Space</span> fire, <span className="text-emerald-100">Shift</span> hyperspace,{" "}
-        <span className="text-emerald-100">P</span> pause, <span className="text-emerald-100">Enter</span> start.
-      </div>
-    </div>
-  );
-}
-
-type TouchControlsProps = {
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
-  onRotateStop: () => void;
-  onThrustStart: () => void;
-  onThrustStop: () => void;
-  onFireStart: () => void;
-  onFireStop: () => void;
-  onHyperspace: () => void;
-};
-
-const TouchControls = memo(function TouchControls(props: TouchControlsProps) {
-  return (
-    <div className="absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-3 p-4">
-      <div className="flex gap-2">
-        <HoldButton label="⟲" ariaLabel="Rotate left" onDown={props.onRotateLeft} onUp={props.onRotateStop} />
-        <HoldButton label="⟳" ariaLabel="Rotate right" onDown={props.onRotateRight} onUp={props.onRotateStop} />
-      </div>
-
-      <div className="flex gap-2">
-        <HoldButton label="THRUST" ariaLabel="Thrust forward" onDown={props.onThrustStart} onUp={props.onThrustStop} />
-        <HoldButton label="FIRE" ariaLabel="Fire weapon" onDown={props.onFireStart} onUp={props.onFireStop} />
-        <TapButton label="JUMP" ariaLabel="Hyperspace jump" onTap={props.onHyperspace} />
-      </div>
-    </div>
-  );
-});
-
-const MuteButton = memo(function MuteButton(props: { isMuted: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={props.onToggle}
-      aria-pressed={props.isMuted}
-      aria-label={props.isMuted ? "Unmute game sound" : "Mute game sound"}
-      className="select-none rounded-full border border-emerald-200/20 bg-black/40 px-3 py-2 text-sm text-emerald-50 backdrop-blur transition hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-    >
-      {props.isMuted ? "Unmute" : "Mute"}
-    </button>
-  );
-});
-
-const GameButton = memo(function GameButton(props: { children: React.ReactNode; onClick: () => void; disabled?: boolean; autoFocus?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      disabled={props.disabled}
-      autoFocus={props.autoFocus}
-      className="select-none rounded-full border border-emerald-200/20 bg-black/40 px-4 py-2 text-sm text-emerald-50 backdrop-blur transition hover:bg-black/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 disabled:opacity-50"
-    >
-      {props.children}
-    </button>
-  );
-});
-
-const HoldButton = memo(function HoldButton(props: { label: string; ariaLabel: string; onDown: () => void; onUp: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={props.ariaLabel}
-      className="select-none rounded-xl border border-emerald-200/20 bg-black/40 px-4 py-3 text-sm text-emerald-50 backdrop-blur active:bg-black/70 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        props.onDown();
-      }}
-      onPointerUp={props.onUp}
-      onPointerCancel={props.onUp}
-    >
-      {props.label}
-    </button>
-  );
-});
-
-const TapButton = memo(function TapButton(props: { label: string; ariaLabel: string; onTap: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={props.ariaLabel}
-      className="select-none rounded-xl border border-emerald-200/20 bg-black/40 px-4 py-3 text-sm text-emerald-50 backdrop-blur active:bg-black/70 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        props.onTap();
-      }}
-    >
-      {props.label}
-    </button>
-  );
-});

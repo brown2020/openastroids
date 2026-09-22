@@ -41,11 +41,18 @@ src/
 │   └── random.ts             # Mulberry32 PRNG, entity IDs
 ├── stores/
 │   └── openastroids-store.ts # Zustand — HUD bridge only
-└── components/
-    └── error-boundary.tsx    # React error boundary with reload UI
+├── components/
+│   ├── error-boundary.tsx    # React error boundary with reload UI
+│   ├── game-buttons.tsx      # Mute / Game / Hold / Tap buttons
+│   ├── game-hud.tsx          # Score/lives HUD + site nav
+│   ├── game-overlays.tsx     # Ready + game-over dialogs
+│   └── touch-controls.tsx    # Touch pad + desktop hint
+└── hooks/
+    └── use-openastroids-game.ts  # RAF loop, input, audio, HUD bridge
 ```
 
-Root docs: `AGENTS.md` (this file), `spec.md` (product spec and roadmap), `README.md` (getting started), `CLAUDE.md` (pointer to this file).
+Root docs: `AGENTS.md` (this file), `spec.md`, `README.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/budget.md`.
+CI: `.github/workflows/ci.yml` (lint/typecheck/test/build). No `NEXT_PUBLIC_*` — if added later, use `${{ secrets.* }}` only.
 
 ## Core architecture
 
