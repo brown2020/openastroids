@@ -1,55 +1,90 @@
-## OpenAstroids
+# OpenAstroids
 
-OpenAstroids is a modern, open-source remake of the classic **Asteroids** arcade game — built with **Next.js + TypeScript** and a lightweight **Canvas** renderer.
+A modern, open-source Asteroids clone for the browser: vector-style canvas graphics, keyboard and touch controls, entirely client-side. No backend, auth, API routes, or environment variables. Play at [https://openastroids.vercel.app](https://openastroids.vercel.app).
 
-## Getting Started
+## Features
 
-First, run the development server:
+- Classic arcade loop: rotate, thrust, fire, hyperspace, asteroid splitting, lives, scoring
+- Canvas renderer with CRT-style overlay and starfield
+- Desktop keyboard controls and on-screen touch controls
+- Pause, mute, high score (local-only), game-over / ready overlays
+- Pure TypeScript game engine (`src/lib/openastroids`) separate from React HUD (Zustand)
+- Static about / privacy / terms pages
+
+## Controls
+
+| Action | Desktop | Touch |
+| --- | --- | --- |
+| Rotate | `A`/`D` or `←`/`→` | On-screen rotate |
+| Thrust | `W` or `↑` | On-screen thrust |
+| Fire | `Space` | On-screen fire |
+| Hyperspace | `Shift` | On-screen hyperspace |
+| Pause | `P` | — |
+| Start | `Enter` | Start overlay |
+
+## Tech stack
+
+| Layer | Tech |
+| --- | --- |
+| Framework | Next.js ^16.3.6 (App Router) |
+| UI | React ^19.3.0, Tailwind CSS ^4.3.3 |
+| Language | TypeScript ^6 |
+| HUD state | Zustand ^5.0.15 |
+| Tests | Node.js test runner via `tsx` (`src/**/*.test.ts`) |
+
+## Project structure
+
+```
+src/
+  app/                 # page (game), about, privacy, terms
+  lib/openastroids/    # Pure engine: game, math, render, audio, high-score
+  stores/              # Zustand HUD bridge
+  components/          # HUD, overlays, touch controls, error boundary
+  hooks/               # use-openastroids-game (RAF loop + input)
+```
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 22+
+- npm
+
+### Install and run
 
 ```bash
+git clone https://github.com/brown2020/openastroids.git
+cd openastroids
+npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000` with your browser to play.
+Open [http://localhost:3000](http://localhost:3000). No environment variables are required.
 
-## Controls (Desktop)
+## Scripts
 
-- **Rotate**: `A/D` or `←/→`
-- **Thrust**: `W` or `↑`
-- **Fire**: `Space`
-- **Hyperspace**: `Shift`
-- **Pause**: `P`
-- **Start**: `Enter`
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build |
+| `npm start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Node tests on `src/**/*.test.ts` |
 
-## Controls (Touch)
+## Testing and CI
 
-Use the on-screen buttons for rotate, thrust, fire, and hyperspace.
+- Unit tests cover game logic, math, render helpers, audio, high score, and routes.
+- `.github/workflows/ci.yml` on `dev` / `main`: lint → typecheck → test → build (no secrets).
 
-## Dev Notes
+## Deployment
 
-- Game logic lives in `src/lib/openastroids/*` (pure TypeScript).
-- UI lives in `src/app/page.tsx` (single client canvas).
-- Use npm; this repo tracks `package-lock.json`.
-- Validate with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`.
-- High score and mute preference are stored only in this browser's `localStorage`.
+Any Next.js host (e.g. Vercel). Client-only; no server secrets.
+
+## Contributing
+
+Branch from `dev`. Keep `src/lib/openastroids` free of React imports. See [`AGENTS.md`](./AGENTS.md) and [`spec.md`](./spec.md).
 
 ## License
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See `LICENSE.md`.
-
-> AGPL note: if you run a modified version of this project and make it available to users over a network, you must also offer the complete corresponding source to those users (see AGPLv3 §13).
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+GNU Affero General Public License v3.0 — see [LICENSE.md](LICENSE.md).
