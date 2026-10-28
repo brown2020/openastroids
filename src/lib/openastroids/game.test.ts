@@ -322,6 +322,80 @@ describe("ship death debris", () => {
   });
 });
 
+describe("wrapped and swept collisions", () => {
+  it("hits an asteroid across the screen edge", () => {
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 984,
+      lives: 2,
+      asteroids: [
+        {
+          id: "edge",
+          pos: { x: 790, y: 300 },
+          vel: { x: 0, y: 0 },
+          angle: 0,
+          spin: 0,
+          radius: 18,
+          size: 1,
+          shape: Array.from({ length: 12 }, () => 1),
+        },
+      ],
+      ship: {
+        pos: { x: 10, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 0,
+        canFireAtMs: 0,
+      },
+      bullets: [],
+    });
+    const { didShipExplode } = step(state, NO_INPUT, 1000, 5);
+    assert.equal(didShipExplode, true);
+  });
+
+  it("hits an asteroid a fast bullet passes through during the frame", () => {
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 950,
+      score: 0,
+      asteroids: [
+        {
+          id: "mid",
+          pos: { x: 150, y: 100 },
+          vel: { x: 0, y: 0 },
+          angle: 0,
+          spin: 0,
+          radius: 18,
+          size: 3,
+          shape: Array.from({ length: 12 }, () => 1),
+        },
+      ],
+      ship: {
+        pos: { x: 400, y: 400 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 99_999,
+        canFireAtMs: 99_999,
+      },
+      bullets: [
+        {
+          id: "fast",
+          pos: { x: 100, y: 100 },
+          vel: { x: 2000, y: 0 },
+          radius: 2.5,
+          bornAtMs: 950,
+        },
+      ],
+    });
+    const { next, asteroidHits } = step(state, NO_INPUT, 1000, 8);
+    assert.deepEqual(asteroidHits, [3]);
+    assert.equal(next.score, 20);
+    assert.equal(next.bullets.length, 0);
+  });
+});
+
 describe("ship friction", () => {
   it("coasts at the same rate across frame rates", () => {
     const coast = (fps: number) => {

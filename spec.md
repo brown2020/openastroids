@@ -43,7 +43,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Area | Status | Notes |
 |------|--------|-------|
 | Ship movement | ✅ | Rotation, thrust, friction, max speed 560 px/s |
-| Screen wrap | ✅ | Ship, bullets, asteroids |
+| Screen wrap | ✅ | Ship, bullets, asteroids; collisions use wrapped, swept tests |
 | Firing | ✅ | Cooldown 180 ms; lifetime 900 ms; max 4 on screen |
 | Bullet limit (max 4) | ✅ | Enforced in `game.ts` `step()` |
 | Asteroid sizes | ✅ | Large → 2 medium → 2 small → gone |

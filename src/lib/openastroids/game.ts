@@ -1,4 +1,4 @@
-import { TAU, add, clamp, dist, fromAngle, mul, randBetween, wrapPosition } from "./math";
+import { TAU, add, clamp, dist, fromAngle, mul, randBetween, sweptCircleHit, toroidalDist, wrapPosition } from "./math";
 import { createRng, id as rid, type Rng } from "./random";
 import type {
   Asteroid,
@@ -224,8 +224,11 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   let explosions = prev.explosions.filter((e) => nowMs - e.bornAtMs < e.durationMs);
   let debris = prev.debris.filter((d) => nowMs - d.bornAtMs < d.durationMs);
 
-  // hyperspace (teleport) - adds risk: brief invincibility but velocity kept
+  // hyperspace (teleport) - adds risk: brief invincibility but velocity kept.
+  // The teleport is not a flight path, so collisions test the landing point only.
+  let didHyperspace = false;
   if (input.isHyperspace && nowMs >= ship.invincibleUntilMs) {
+    didHyperspace = true;
     ship = {
       ...ship,
       pos: { x: rng() * prev.width, y: rng() * prev.height },
@@ -256,11 +259,21 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   let score = prev.score;
   const spawnedAsteroids: Asteroid[] = [];
 
+  const prevBulletById = new Map(prev.bullets.map((b) => [b.id, b]));
+  const prevAsteroidById = new Map(prev.asteroids.map((a) => [a.id, a]));
+
   for (const b of bullets) {
     if (spentBullets.has(b.id)) continue;
+    const prevBullet = prevBulletById.get(b.id);
     for (const a of asteroids) {
       if (hitAsteroids.has(a.id)) continue;
-      if (dist(b.pos, a.pos) <= b.radius + a.radius) {
+      const prevAsteroid = prevAsteroidById.get(a.id);
+      const radius = b.radius + a.radius;
+      const hit =
+        prevBullet && prevAsteroid
+          ? circlesHitDuringFrame(prevAsteroid.pos, a.vel, prevBullet.pos, b.vel, radius, dt, prev.width, prev.height)
+          : toroidalDist(b.pos, a.pos, prev.width, prev.height) <= radius;
+      if (hit) {
         hitAsteroids.add(a.id);
         spentBullets.add(b.id);
         const split = splitAsteroid(a, rng);
@@ -291,7 +304,13 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
   const isInvincible = nowMs < ship.invincibleUntilMs;
   if (!isInvincible) {
     for (const a of asteroids) {
-      if (dist(ship.pos, a.pos) <= ship.radius + a.radius) {
+      const prevAsteroid = prevAsteroidById.get(a.id);
+      const radius = ship.radius + a.radius;
+      const hit =
+        didHyperspace || !prevAsteroid
+          ? toroidalDist(ship.pos, a.pos, prev.width, prev.height) <= radius
+          : circlesHitDuringFrame(prevAsteroid.pos, a.vel, prev.ship.pos, ship.vel, radius, dt, prev.width, prev.height);
+      if (hit) {
         didShipExplode = true;
         debris = debris.concat(spawnShipDebris(ship, rng, nowMs));
         const livesAfterHit = lives - 1;
@@ -448,6 +467,28 @@ export function spawnShipDebris(ship: Ship, rng: Rng, nowMs: number): Debris[] {
       bornAtMs: nowMs,
       durationMs: SHIP_DEBRIS_MS,
     };
+  });
+}
+
+/** Continuous motion this frame, including the short wrap across a screen edge. */
+function circlesHitDuringFrame(
+  a0: Vec2,
+  aVel: Vec2,
+  b0: Vec2,
+  bVel: Vec2,
+  radius: number,
+  dt: number,
+  width: number,
+  height: number,
+): boolean {
+  return sweptCircleHit({
+    a0,
+    a1: add(a0, mul(aVel, dt)),
+    b0,
+    b1: add(b0, mul(bVel, dt)),
+    radius,
+    width,
+    height,
   });
 }
 
