@@ -15,7 +15,7 @@ import {
   step,
   togglePause,
 } from "@/lib/openastroids/game";
-import { maybeUpdateHighScore, readHighScore } from "@/lib/openastroids/high-score";
+import { isNewHighScore, maybeUpdateHighScore, readHighScore } from "@/lib/openastroids/high-score";
 import { shouldIgnoreGameAction, shouldPreventGameKeyDefault, touchRotateDir } from "@/lib/openastroids/input-policy";
 import { render } from "@/lib/openastroids/render";
 import type { GameState, InputState } from "@/lib/openastroids/types";
@@ -90,6 +90,7 @@ export function useOpenAstroidsGame() {
     asteroidsDestroyed,
     activeMs,
     highScore,
+    isNewRecord,
     isTouch,
     isMuted,
     setHud,
@@ -223,16 +224,23 @@ export function useOpenAstroidsGame() {
       const isGameOver = next.status === "gameover" && game.status !== "gameover";
       if (isGameOver || nowMs - hudLastUpdateMsRef.current > HUD_UPDATE_INTERVAL_MS) {
         hudLastUpdateMsRef.current = nowMs;
-        setHud({
+        const hud = {
           status: next.status,
           score: next.score,
           lives: next.lives,
           level: next.level,
           asteroidsDestroyed: next.asteroidsDestroyed,
           activeMs: next.activeMs,
-        });
+        };
         if (isGameOver) {
-          setHighScore(maybeUpdateHighScore(next.score));
+          const previousBest = readHighScore();
+          useOpenAstroidsStore.setState({
+            ...hud,
+            highScore: maybeUpdateHighScore(next.score),
+            isNewRecord: isNewHighScore(next.score, previousBest),
+          });
+        } else {
+          setHud(hud);
         }
       }
 
@@ -410,6 +418,7 @@ export function useOpenAstroidsGame() {
     asteroidsDestroyed,
     activeMs,
     highScore,
+    isNewRecord,
     isTouch,
     isMuted,
     toggleMuted,

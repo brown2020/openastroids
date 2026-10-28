@@ -39,6 +39,12 @@ export function writeHighScore(score: number, storage?: ScoreStorage): void {
   }
 }
 
+/** True only when this score is strictly higher than the stored best. Ties are not new records. */
+export function isNewHighScore(score: number, previousBest: number): boolean {
+  if (!Number.isFinite(score) || !Number.isFinite(previousBest)) return false;
+  return Math.floor(score) > previousBest;
+}
+
 /** Updates storage when score beats the record; returns the best score after the check. */
 export function maybeUpdateHighScore(score: number, storage?: ScoreStorage): number {
   const current = readHighScore(storage);

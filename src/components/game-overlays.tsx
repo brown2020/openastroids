@@ -92,6 +92,7 @@ export function ReadyOverlay(props: ReadyOverlayProps) {
 type GameOverOverlayProps = {
   score: number;
   highScore: number;
+  isNewRecord: boolean;
   level: number;
   activeMs: number;
   asteroidsDestroyed: number;
@@ -120,9 +121,7 @@ export function GameOverOverlay(props: GameOverOverlayProps) {
         </div>
         <div className="mt-1 text-sm text-emerald-100/70">
           Best score: <span className="font-mono tabular-nums text-emerald-50">{props.highScore}</span>
-          {props.score > 0 && props.score >= props.highScore ? (
-            <span className="ml-2 text-emerald-300">New record!</span>
-          ) : null}
+          {props.isNewRecord ? <span className="ml-2 text-emerald-300">New record!</span> : null}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-left text-sm text-emerald-100/80">
           <div>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   HIGH_SCORE_STORAGE_KEY,
+  isNewHighScore,
   maybeUpdateHighScore,
   parseHighScore,
   readHighScore,
@@ -30,6 +31,15 @@ describe("parseHighScore", () => {
   it("parses non-negative integers", () => {
     assert.equal(parseHighScore("0"), 0);
     assert.equal(parseHighScore("1250"), 1250);
+  });
+});
+
+describe("isNewHighScore", () => {
+  it("is true only when the score beats the previous best", () => {
+    assert.equal(isNewHighScore(101, 100), true);
+    assert.equal(isNewHighScore(100, 100), false);
+    assert.equal(isNewHighScore(0, 0), false);
+    assert.equal(isNewHighScore(Number.NaN, 0), false);
   });
 });
 

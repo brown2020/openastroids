@@ -8,6 +8,7 @@ type HudState = {
   asteroidsDestroyed: number;
   activeMs: number;
   highScore: number;
+  isNewRecord: boolean;
   isTouch: boolean;
   isMuted: boolean;
   setHud: (
@@ -26,6 +27,7 @@ export const useOpenAstroidsStore = create<HudState>((set) => ({
   asteroidsDestroyed: 0,
   activeMs: 0,
   highScore: 0,
+  isNewRecord: false,
   isTouch: false,
   isMuted: false,
   setHud: (next) => set(next),

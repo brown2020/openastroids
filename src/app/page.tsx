@@ -15,6 +15,7 @@ export default function Home() {
     asteroidsDestroyed,
     activeMs,
     highScore,
+    isNewRecord,
     isTouch,
     isMuted,
     toggleMuted,
@@ -76,6 +77,7 @@ export default function Home() {
         <GameOverOverlay
           score={score}
           highScore={highScore}
+          isNewRecord={isNewRecord}
           level={level}
           activeMs={activeMs}
           asteroidsDestroyed={asteroidsDestroyed}
