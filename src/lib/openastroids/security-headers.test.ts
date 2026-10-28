@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import nextConfig from "../../../next.config.ts";
+import nextConfig from "../../../next.config";
 
 describe("security headers", () => {
   it("sets nosniff, a strict referrer policy, and frame-ancestors none", async () => {
-    assert.equal(typeof nextConfig.headers, "function");
-    const groups = await nextConfig.headers();
+    const headersFn = nextConfig.headers;
+    if (typeof headersFn !== "function") {
+      throw new Error("headers() is not configured");
+    }
+    const groups = await headersFn();
     const headers = new Map(
       groups.flatMap((group) => group.headers.map((header) => [header.key.toLowerCase(), header.value])),
     );

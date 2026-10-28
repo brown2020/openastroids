@@ -50,20 +50,6 @@ function resetInputState(
 }
 
 const HUD_UPDATE_INTERVAL_MS = 75;
-const GAME_KEYS = [
-  "Space",
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "KeyW",
-  "KeyA",
-  "KeyD",
-  "KeyP",
-  "Enter",
-  "ShiftLeft",
-  "ShiftRight",
-];
 const FALLBACK_CANVAS_SIZE = { w: 800, h: 600 };
 
 export function useOpenAstroidsGame() {
@@ -253,7 +239,7 @@ export function useOpenAstroidsGame() {
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [setHud, setHighScore]);
+  }, [setHud]);
 
   const updateHud = useCallback(() => {
     const g = gameRef.current;
