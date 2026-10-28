@@ -322,6 +322,55 @@ describe("ship death debris", () => {
   });
 });
 
+describe("timers outside running", () => {
+  it("keeps the spawn shield while the ready screen is up", () => {
+    let ready = createInitialState({ width: 800, height: 600, nowMs: 0, seed: 1 });
+    ready = step(ready, NO_INPUT, 5000, 1).next;
+    const started = startGame(ready, 5000);
+    assert.equal(started.ship.invincibleUntilMs - started.nowMs, 1400);
+    const first = step(started, NO_INPUT, 5100, 2).next;
+    assert.ok(first.nowMs < first.ship.invincibleUntilMs);
+  });
+
+  it("does not age invincibility, bullets, or fire cooldown while paused", () => {
+    let state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 1000,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 2400,
+        canFireAtMs: 1180,
+      },
+      bullets: [
+        {
+          id: "b1",
+          pos: { x: 40, y: 40 },
+          vel: { x: 0, y: 0 },
+          radius: 2.5,
+          bornAtMs: 1000,
+        },
+      ],
+    });
+    state = togglePause(state);
+    state = step(state, NO_INPUT, 3000, 3).next;
+    assert.equal(state.status, "paused");
+    assert.equal(state.bullets.length, 1);
+    assert.equal(state.ship.invincibleUntilMs - state.nowMs, 1400);
+    assert.equal(state.ship.canFireAtMs - state.nowMs, 180);
+    assert.equal(state.nowMs - state.bullets[0]!.bornAtMs, 0);
+
+    const resumed = startGame(state, 3010);
+    const next = step(resumed, NO_INPUT, 3026, 4).next;
+    assert.equal(next.bullets.length, 1);
+    assert.equal(next.ship.invincibleUntilMs, 4410);
+    assert.ok(next.nowMs < next.ship.invincibleUntilMs);
+    assert.equal(next.ship.canFireAtMs, 3190);
+  });
+});
+
 describe("resizeState", () => {
   it("wraps ship, bullets, and asteroids into new bounds", () => {
     const ready = createInitialState({ width: 800, height: 600, nowMs: 0, seed: 1 });

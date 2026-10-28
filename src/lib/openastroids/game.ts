@@ -144,7 +144,17 @@ export function resizeState(prev: GameState, width: number, height: number): Gam
  */
 export function startGame(prev: GameState, nowMs: number): GameState {
   if (prev.status === "running") return prev;
-  return { ...prev, status: "running", startedAtMs: nowMs, nowMs, lastFrameMs: nowMs };
+  // Ready and pause share the wall clock. Slide absolute timers forward so that
+  // gap does not consume invincibility, bullets, or the fire cooldown. A full
+  // spawn shield granted at state creation therefore still remains at Start.
+  const shifted = shiftLifetimeTimestamps(prev, nowMs - prev.nowMs);
+  return {
+    ...shifted,
+    status: "running",
+    startedAtMs: nowMs,
+    nowMs,
+    lastFrameMs: nowMs,
+  };
 }
 
 /**
@@ -190,8 +200,9 @@ export function step(prev: GameState, input: InputState, nowMs: number, seed: nu
     extraLivesGained: 0,
   };
   if (prev.status !== "running") {
+    const shifted = shiftLifetimeTimestamps(prev, nowMs - prev.nowMs);
     return {
-      next: { ...prev, nowMs, lastFrameMs: nowMs },
+      next: { ...shifted, nowMs, lastFrameMs: nowMs },
       didShipExplode: false,
       didLevelAdvance: false,
       ...idle,
@@ -372,6 +383,25 @@ export function formatRunTimeMs(ms: number): string {
   const minutes = Math.floor(totalSec / 60);
   const seconds = totalSec % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Moves absolute timestamps forward by a wall-clock gap spent outside `running`.
+ * Remaining invincibility, bullet life, fire cooldown, and effect lifetimes stay put.
+ */
+function shiftLifetimeTimestamps(prev: GameState, deltaMs: number): GameState {
+  if (!(deltaMs > 0)) return prev;
+  return {
+    ...prev,
+    ship: {
+      ...prev.ship,
+      invincibleUntilMs: prev.ship.invincibleUntilMs + deltaMs,
+      canFireAtMs: prev.ship.canFireAtMs + deltaMs,
+    },
+    bullets: prev.bullets.map((b) => ({ ...b, bornAtMs: b.bornAtMs + deltaMs })),
+    explosions: prev.explosions.map((e) => ({ ...e, bornAtMs: e.bornAtMs + deltaMs })),
+    debris: prev.debris.map((d) => ({ ...d, bornAtMs: d.bornAtMs + deltaMs })),
+  };
 }
 
 /** Awards +1 life for each 10k score threshold crossed since the last award. */

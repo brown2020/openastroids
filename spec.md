@@ -49,7 +49,7 @@ OpenAstroids is a single-page canvas game embedded in a Next.js app. A `requestA
 | Asteroid sizes | ✅ | Large → 2 medium → 2 small → gone |
 | Scoring | ✅ | 20 / 50 / 100 points |
 | Lives | ✅ | Start 3; +1 bonus life at each 10k score |
-| Invincibility | ✅ | 1.4 s spawn/respawn; blink render |
+| Invincibility | ✅ | 1.4 s at start and respawn; clock freezes while ready or paused |
 | Hyperspace | ✅ | Random teleport; 520 ms invincibility |
 | Level waves | ✅ | 4 + floor(level × 0.75) large asteroids, cap 12 |
 | Asteroid cap (26 total) | ❌ | No global cap on screen count |
