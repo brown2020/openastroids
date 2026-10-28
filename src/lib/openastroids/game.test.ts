@@ -322,6 +322,38 @@ describe("ship death debris", () => {
   });
 });
 
+describe("ship friction", () => {
+  it("coasts at the same rate across frame rates", () => {
+    const coast = (fps: number) => {
+      let state = runningState({
+        nowMs: 0,
+        lastFrameMs: 0,
+        asteroids: [],
+        ship: {
+          pos: { x: 400, y: 300 },
+          vel: { x: 400, y: 0 },
+          angle: 0,
+          radius: 14,
+          invincibleUntilMs: 1_000_000,
+          canFireAtMs: 0,
+        },
+      });
+      const dt = 1000 / fps;
+      for (let i = 1; i <= fps; i += 1) {
+        state = step(state, NO_INPUT, i * dt, i).next;
+      }
+      return state.ship.vel.x;
+    };
+
+    const at30 = coast(30);
+    const at60 = coast(60);
+    const at144 = coast(144);
+    assert.ok(Math.abs(at30 - at60) < 0.01, `30fps ${at30} vs 60fps ${at60}`);
+    assert.ok(Math.abs(at144 - at60) < 0.01, `144fps ${at144} vs 60fps ${at60}`);
+    assert.ok(at60 < 400 && at60 > 100);
+  });
+});
+
 describe("timers outside running", () => {
   it("keeps the spawn shield while the ready screen is up", () => {
     let ready = createInitialState({ width: 800, height: 600, nowMs: 0, seed: 1 });

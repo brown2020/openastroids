@@ -19,7 +19,7 @@ const SHIP_RADIUS = 14;
 const SHIP_TURN_RATE = 4.6;
 /** Ship thrust acceleration in pixels per second squared */
 const SHIP_THRUST = 520;
-/** Ship velocity decay per frame (0.985 = 1.5% friction) */
+/** Velocity retained per 1/60 s. Applied as friction^(dt*60) so 30 Hz and 144 Hz coast the same. */
 const SHIP_FRICTION = 0.985;
 /** Maximum ship velocity in pixels per second */
 const SHIP_MAX_SPEED = 560;
@@ -461,7 +461,7 @@ function integrateShip(ship: Ship, input: InputState, dt: number, game: GameStat
     vel = add(vel, mul(a, SHIP_THRUST * dt));
   }
 
-  vel = mul(vel, SHIP_FRICTION);
+  vel = mul(vel, Math.pow(SHIP_FRICTION, dt * 60));
   const speed = Math.hypot(vel.x, vel.y);
   if (speed > SHIP_MAX_SPEED) {
     vel = mul(vel, SHIP_MAX_SPEED / speed);
