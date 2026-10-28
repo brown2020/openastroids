@@ -21,7 +21,8 @@ export function DesktopControlsHint() {
 type TouchControlsProps = {
   onRotateLeft: () => void;
   onRotateRight: () => void;
-  onRotateStop: () => void;
+  onRotateLeftStop: () => void;
+  onRotateRightStop: () => void;
   onThrustStart: () => void;
   onThrustStop: () => void;
   onFireStart: () => void;
@@ -33,8 +34,8 @@ export const TouchControls = memo(function TouchControls(props: TouchControlsPro
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-3 p-4">
       <div className="flex gap-2">
-        <HoldButton label="⟲" ariaLabel="Rotate left" onDown={props.onRotateLeft} onUp={props.onRotateStop} />
-        <HoldButton label="⟳" ariaLabel="Rotate right" onDown={props.onRotateRight} onUp={props.onRotateStop} />
+        <HoldButton label="⟲" ariaLabel="Rotate left" onDown={props.onRotateLeft} onUp={props.onRotateLeftStop} />
+        <HoldButton label="⟳" ariaLabel="Rotate right" onDown={props.onRotateRight} onUp={props.onRotateRightStop} />
       </div>
 
       <div className="flex gap-2">

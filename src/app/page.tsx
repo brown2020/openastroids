@@ -23,7 +23,8 @@ export default function Home() {
     doRestart,
     handleRotateLeft,
     handleRotateRight,
-    handleRotateStop,
+    handleRotateLeftStop,
+    handleRotateRightStop,
     handleThrustStart,
     handleThrustStop,
     handleFireStart,
@@ -58,7 +59,8 @@ export default function Home() {
         <TouchControls
           onRotateLeft={handleRotateLeft}
           onRotateRight={handleRotateRight}
-          onRotateStop={handleRotateStop}
+          onRotateLeftStop={handleRotateLeftStop}
+          onRotateRightStop={handleRotateRightStop}
           onThrustStart={handleThrustStart}
           onThrustStop={handleThrustStop}
           onFireStart={handleFireStart}

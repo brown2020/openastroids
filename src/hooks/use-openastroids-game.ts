@@ -16,6 +16,7 @@ import {
   togglePause,
 } from "@/lib/openastroids/game";
 import { maybeUpdateHighScore, readHighScore } from "@/lib/openastroids/high-score";
+import { shouldIgnoreGameAction, shouldPreventGameKeyDefault, touchRotateDir } from "@/lib/openastroids/input-policy";
 import { render } from "@/lib/openastroids/render";
 import type { GameState, InputState } from "@/lib/openastroids/types";
 import { useOpenAstroidsStore } from "@/stores/openastroids-store";
@@ -27,11 +28,25 @@ const EMPTY_INPUT: InputState = {
   isHyperspace: false,
 };
 
-function resetInputState(input: InputState, queuedHyperspace: { current: boolean }) {
+function isInteractiveEventTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return target.closest("a, button, input, textarea, select, [role='button'], [role='link']") !== null;
+}
+
+function resetInputState(
+  input: InputState,
+  queuedHyperspace: { current: boolean },
+  keyRotate: { current: -1 | 0 | 1 },
+  touchLeft: { current: boolean },
+  touchRight: { current: boolean },
+) {
   input.isThrusting = false;
   input.rotateDir = 0;
   input.isFiring = false;
   queuedHyperspace.current = false;
+  keyRotate.current = 0;
+  touchLeft.current = false;
+  touchRight.current = false;
 }
 
 const HUD_UPDATE_INTERVAL_MS = 75;
@@ -58,6 +73,9 @@ export function useOpenAstroidsGame() {
   const gameRef = useRef<GameState | null>(null);
   const inputRef = useRef<InputState>({ ...EMPTY_INPUT });
   const queuedHyperspaceRef = useRef(false);
+  const keyRotateRef = useRef<-1 | 0 | 1>(0);
+  const touchLeftRef = useRef(false);
+  const touchRightRef = useRef(false);
   const frameRef = useRef(0);
   const seedRef = useRef<number>(0);
   const hudLastUpdateMsRef = useRef(0);
@@ -169,6 +187,8 @@ export function useOpenAstroidsGame() {
 
       const hyperspace = queuedHyperspaceRef.current;
       queuedHyperspaceRef.current = false;
+      inputRef.current.rotateDir =
+        keyRotateRef.current !== 0 ? keyRotateRef.current : touchRotateDir(touchLeftRef.current, touchRightRef.current);
       const input: InputState = { ...inputRef.current, isHyperspace: hyperspace };
 
       const seed = (seedRef.current + frameRef.current) >>> 0;
@@ -243,7 +263,7 @@ export function useOpenAstroidsGame() {
   const pauseGame = useCallback(() => {
     const g = gameRef.current;
     if (!g || g.status !== "running") return;
-    resetInputState(inputRef.current, queuedHyperspaceRef);
+    resetInputState(inputRef.current, queuedHyperspaceRef, keyRotateRef, touchLeftRef, touchRightRef);
     gameRef.current = togglePause(g);
     audioRef.current?.setThrustActive(false);
     updateHud();
@@ -264,7 +284,7 @@ export function useOpenAstroidsGame() {
   const doRestart = useCallback(() => {
     const g = gameRef.current;
     if (!g) return;
-    resetInputState(inputRef.current, queuedHyperspaceRef);
+    resetInputState(inputRef.current, queuedHyperspaceRef, keyRotateRef, touchLeftRef, touchRightRef);
     const buf = new Uint32Array(1);
     crypto.getRandomValues(buf);
     seedRef.current = buf[0] ?? 1;
@@ -274,12 +294,14 @@ export function useOpenAstroidsGame() {
   }, [updateHud]);
 
   const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
-    if (GAME_KEYS.includes(e.code)) {
+    const interactive = isInteractiveEventTarget(e.target);
+    if (shouldPreventGameKeyDefault(e.code, interactive)) {
       e.preventDefault();
     }
+    if (shouldIgnoreGameAction(e.code, e.repeat, interactive)) return;
 
-    if (e.code === "ArrowLeft" || e.code === "KeyA") inputRef.current.rotateDir = -1;
-    if (e.code === "ArrowRight" || e.code === "KeyD") inputRef.current.rotateDir = 1;
+    if (e.code === "ArrowLeft" || e.code === "KeyA") keyRotateRef.current = -1;
+    if (e.code === "ArrowRight" || e.code === "KeyD") keyRotateRef.current = 1;
     if (e.code === "ArrowUp" || e.code === "KeyW") inputRef.current.isThrusting = true;
     if (e.code === "Space") inputRef.current.isFiring = true;
     if (e.code === "ShiftLeft" || e.code === "ShiftRight") queuedHyperspaceRef.current = true;
@@ -287,7 +309,7 @@ export function useOpenAstroidsGame() {
       const g = gameRef.current;
       if (!g) return;
       if (g.status === "running") {
-        resetInputState(inputRef.current, queuedHyperspaceRef);
+        resetInputState(inputRef.current, queuedHyperspaceRef, keyRotateRef, touchLeftRef, touchRightRef);
         gameRef.current = togglePause(g);
         audioRef.current?.setThrustActive(false);
       } else if (g.status === "paused") {
@@ -311,10 +333,10 @@ export function useOpenAstroidsGame() {
 
   const onKeyUp = useEffectEvent((e: KeyboardEvent) => {
     if (e.code === "ArrowLeft" || e.code === "KeyA") {
-      if (inputRef.current.rotateDir === -1) inputRef.current.rotateDir = 0;
+      if (keyRotateRef.current === -1) keyRotateRef.current = 0;
     }
     if (e.code === "ArrowRight" || e.code === "KeyD") {
-      if (inputRef.current.rotateDir === 1) inputRef.current.rotateDir = 0;
+      if (keyRotateRef.current === 1) keyRotateRef.current = 0;
     }
     if (e.code === "ArrowUp" || e.code === "KeyW") inputRef.current.isThrusting = false;
     if (e.code === "Space") inputRef.current.isFiring = false;
@@ -341,7 +363,7 @@ export function useOpenAstroidsGame() {
     const g = gameRef.current;
     if (!g) return;
     if (g.status === "running") {
-      resetInputState(inputRef.current, queuedHyperspaceRef);
+      resetInputState(inputRef.current, queuedHyperspaceRef, keyRotateRef, touchLeftRef, touchRightRef);
       gameRef.current = togglePause(g);
       audioRef.current?.setThrustActive(false);
     } else if (g.status === "paused") {
@@ -352,13 +374,16 @@ export function useOpenAstroidsGame() {
   }, [resumeAudio, updateHud]);
 
   const handleRotateLeft = useCallback(() => {
-    inputRef.current.rotateDir = -1;
+    touchLeftRef.current = true;
   }, []);
   const handleRotateRight = useCallback(() => {
-    inputRef.current.rotateDir = 1;
+    touchRightRef.current = true;
   }, []);
-  const handleRotateStop = useCallback(() => {
-    inputRef.current.rotateDir = 0;
+  const handleRotateLeftStop = useCallback(() => {
+    touchLeftRef.current = false;
+  }, []);
+  const handleRotateRightStop = useCallback(() => {
+    touchRightRef.current = false;
   }, []);
   const handleThrustStart = useCallback(() => {
     inputRef.current.isThrusting = true;
@@ -393,7 +418,8 @@ export function useOpenAstroidsGame() {
     doRestart,
     handleRotateLeft,
     handleRotateRight,
-    handleRotateStop,
+    handleRotateLeftStop,
+    handleRotateRightStop,
     handleThrustStart,
     handleThrustStop,
     handleFireStart,
