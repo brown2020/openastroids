@@ -562,6 +562,8 @@ function spawnAsteroids(opts: {
   const maxRetries = 50;
   for (let i = 0; i < count; i += 1) {
     let placed = false;
+    let farthest: Asteroid | null = null;
+    let farthestDist = -1;
     for (let attempt = 0; attempt < maxRetries; attempt += 1) {
       const a = createAsteroid({
         rng: opts.rng,
@@ -569,15 +571,19 @@ function spawnAsteroids(opts: {
         height: opts.height,
         size: 3,
       });
-      if (dist(a.pos, opts.avoid) >= 180) {
+      const gap = dist(a.pos, opts.avoid);
+      if (gap > farthestDist) {
+        farthest = a;
+        farthestDist = gap;
+      }
+      if (gap >= 180) {
         out.push(a);
         placed = true;
         break;
       }
     }
-    if (!placed) {
-      out.push(createAsteroid({ rng: opts.rng, width: opts.width, height: opts.height, size: 3 }));
-    }
+    // On a tiny canvas nothing is 180px away. Keep the farthest sample instead of a fresh overlap.
+    if (!placed && farthest) out.push(farthest);
   }
   return out;
 }

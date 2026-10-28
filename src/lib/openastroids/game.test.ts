@@ -11,6 +11,7 @@ import {
   step,
   togglePause,
 } from "./game";
+import { dist } from "./math";
 import { createRng } from "./random";
 import type { Asteroid, GameState, InputState } from "./types";
 
@@ -474,6 +475,30 @@ describe("timers outside running", () => {
     assert.equal(next.ship.invincibleUntilMs, 4410);
     assert.ok(next.nowMs < next.ship.invincibleUntilMs);
     assert.equal(next.ship.canFireAtMs, 3190);
+  });
+});
+
+describe("asteroid spawn clearance", () => {
+  it("keeps the opening wave outside the 180px ship buffer on a normal field", () => {
+    const state = createInitialState({ width: 800, height: 600, nowMs: 0, seed: 42 });
+    assert.equal(state.asteroids.length, 4);
+    assert.deepEqual(state.asteroids[0]?.pos, { x: 376.62553898990154, y: 502.40245554596186 });
+    for (const asteroid of state.asteroids) {
+      assert.ok(dist(asteroid.pos, state.ship.pos) >= 180);
+    }
+  });
+
+  it("does not drop a large asteroid on the ship when the field is smaller than the buffer", () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const state = createInitialState({ width: 220, height: 220, nowMs: 0, seed });
+      for (const asteroid of state.asteroids) {
+        const gap = dist(asteroid.pos, state.ship.pos);
+        assert.ok(
+          gap > asteroid.radius + state.ship.radius,
+          `seed ${seed} spawned ${gap.toFixed(1)}px from the ship`,
+        );
+      }
+    }
   });
 });
 
