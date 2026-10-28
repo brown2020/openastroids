@@ -502,6 +502,73 @@ describe("asteroid spawn clearance", () => {
   });
 });
 
+describe("main run flow", () => {
+  it("starts the next wave when the field is cleared", () => {
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 984,
+      level: 1,
+      asteroids: [],
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: -Math.PI / 2,
+        radius: 14,
+        invincibleUntilMs: 0,
+        canFireAtMs: 0,
+      },
+    });
+    const { next, didLevelAdvance } = step(state, NO_INPUT, 1000, 11);
+    assert.equal(didLevelAdvance, true);
+    assert.equal(next.status, "running");
+    assert.equal(next.level, 2);
+    assert.equal(next.asteroids.length, 5);
+    assert.equal(next.ship.invincibleUntilMs, 2400);
+  });
+
+  it("ends the run and keeps the summary when the last life is lost", () => {
+    const asteroid: Asteroid = {
+      id: "last-hit",
+      pos: { x: 400, y: 300 },
+      vel: { x: 0, y: 0 },
+      angle: 0,
+      spin: 0,
+      radius: 52,
+      size: 3,
+      shape: Array.from({ length: 12 }, () => 1),
+    };
+    const state = runningState({
+      nowMs: 1000,
+      lastFrameMs: 990,
+      lives: 1,
+      score: 40,
+      level: 3,
+      asteroidsDestroyed: 2,
+      activeMs: 500,
+      ship: {
+        pos: { x: 400, y: 300 },
+        vel: { x: 0, y: 0 },
+        angle: 0,
+        radius: 14,
+        invincibleUntilMs: 0,
+        canFireAtMs: 0,
+      },
+      asteroids: [asteroid],
+      bullets: [],
+    });
+    const { next, didShipExplode } = step(state, NO_INPUT, 1000, 12);
+    assert.equal(didShipExplode, true);
+    assert.equal(next.status, "gameover");
+    assert.equal(next.lives, 0);
+    assert.equal(next.score, 40);
+    assert.equal(next.level, 3);
+    assert.equal(next.asteroidsDestroyed, 2);
+    assert.equal(next.activeMs, 510);
+    assert.equal(next.debris.length, 6);
+    assert.equal(next.bullets.length, 0);
+  });
+});
+
 describe("resizeState", () => {
   it("wraps ship, bullets, and asteroids into new bounds", () => {
     const ready = createInitialState({ width: 800, height: 600, nowMs: 0, seed: 1 });

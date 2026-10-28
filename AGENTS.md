@@ -13,7 +13,7 @@ OpenAstroids is a browser-based Asteroids clone: vector-style canvas graphics, k
 | Layer | Technology |
 |-------|------------|
 | Framework | Next.js 16 (App Router) |
-| UI | React 19, TypeScript 6 |
+| UI | React 19, TypeScript 7 (`tsc`) with the TypeScript 6 API package for ESLint |
 | Styling | Tailwind CSS 4 |
 | HUD state | Zustand 5 |
 | Package manager | **npm** (`package-lock.json` — do not switch to yarn/pnpm/bun) |
@@ -51,7 +51,7 @@ src/
     └── use-openastroids-game.ts  # RAF loop, input, audio, HUD bridge
 ```
 
-Root docs: `AGENTS.md` (this file), `spec.md`, `README.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/budget.md`.
+Root docs: `AGENTS.md` (this file), `spec.md`, `roadmap.md`, `README.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/budget.md`.
 CI: `.github/workflows/ci.yml` (lint/typecheck/test/build). No `NEXT_PUBLIC_*` — if added later, use `${{ secrets.* }}` only.
 
 ## Core architecture
@@ -232,7 +232,7 @@ Stop and report (do not guess or overwrite) when:
 
 ## Product planning
 
-See **`spec.md`** for feature inventory, known gaps, and the ordered product roadmap. Do not maintain competing planning docs.
+See **`spec.md`** for the product as built. See **`roadmap.md`** for the punchlist of next steps, known bugs, and open issues. Do not duplicate that punchlist back into `spec.md`.
 
 ## Key types (quick reference)
 
