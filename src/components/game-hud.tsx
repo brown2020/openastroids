@@ -3,6 +3,25 @@
 import Link from "next/link";
 import { GameButton, MuteButton } from "@/components/game-buttons";
 
+const SITE_LINK_CLASS =
+  "hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/50";
+
+export function SiteNav(props: { className?: string }) {
+  return (
+    <nav className={props.className ?? "mt-2 flex gap-3 text-[11px] text-emerald-100/60"} aria-label="Site">
+      <Link href="/about" className={SITE_LINK_CLASS}>
+        About
+      </Link>
+      <Link href="/privacy" className={SITE_LINK_CLASS}>
+        Privacy
+      </Link>
+      <Link href="/terms" className={SITE_LINK_CLASS}>
+        Terms
+      </Link>
+    </nav>
+  );
+}
+
 type GameHudProps = {
   score: number;
   lives: number;
@@ -34,17 +53,7 @@ export function GameHud(props: GameHudProps) {
             <span className="font-mono tabular-nums">{props.level}</span>
           </div>
         </div>
-        <nav className="mt-2 flex gap-3 text-[11px] text-emerald-100/60" aria-label="Site">
-          <Link href="/about" className="hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/50">
-            About
-          </Link>
-          <Link href="/privacy" className="hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/50">
-            Privacy
-          </Link>
-          <Link href="/terms" className="hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-400/50">
-            Terms
-          </Link>
-        </nav>
+        <SiteNav />
       </div>
 
       <div className="pointer-events-auto flex items-center gap-2">

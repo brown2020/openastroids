@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { formatRunTimeMs } from "@/lib/openastroids/game";
 import { GameButton } from "@/components/game-buttons";
+import { SiteNav } from "@/components/game-hud";
+import { formatRunTimeMs } from "@/lib/openastroids/game";
 
 function useShowModal(open: boolean) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -82,6 +83,7 @@ export function ReadyOverlay(props: ReadyOverlayProps) {
             Press Enter or Click to Start
           </GameButton>
         </div>
+        <SiteNav className="mt-4 flex justify-center gap-4 text-xs text-emerald-100/60" />
       </div>
     </dialog>
   );
@@ -144,6 +146,7 @@ export function GameOverOverlay(props: GameOverOverlayProps) {
         <div className="mt-4 text-xs text-emerald-100/60">
           Tip: rotate with A/D (or ←/→), thrust with W (or ↑), shoot with Space, hyperspace with Shift, pause with P.
         </div>
+        <SiteNav className="mt-4 flex justify-center gap-4 text-xs text-emerald-100/60" />
       </div>
     </dialog>
   );
