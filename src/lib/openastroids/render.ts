@@ -1,6 +1,6 @@
 import { TAU, add, fromAngle, mul, wrapPosition } from "./math";
 import { createRng } from "./random";
-import type { Asteroid, Debris, GameState, Ship, Vec2 } from "./types";
+import type { Asteroid, Debris, GameState, GameStatus, Ship, Vec2 } from "./types";
 
 export type RenderOptions = {
   isCrt?: boolean;
@@ -9,6 +9,11 @@ export type RenderOptions = {
   /** When true, thrust flame uses a static short line instead of flicker */
   prefersReducedMotion?: boolean;
 };
+
+/** The crashed hull stays on screen as debris; the intact ship is not drawn after game over. */
+export function shouldDrawShip(status: GameStatus): boolean {
+  return status !== "gameover";
+}
 
 /** Thrust exhaust length in pixels (pure helper for tests and rendering). */
 export function thrustFlameLength(nowMs: number, animate: boolean): number {
@@ -48,8 +53,8 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState, opts: Re
     ctx.stroke();
   }
 
-  // ship
-  drawShip(ctx, state, opts);
+  // ship (hidden after game over so only the debris hull remains)
+  if (shouldDrawShip(state.status)) drawShip(ctx, state, opts);
 
   // ship debris (drawn after ship so fragments appear on top during breakup)
   for (const d of state.debris) drawDebris(ctx, d, state);

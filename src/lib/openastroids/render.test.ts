@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { thrustFlameLength } from "./render";
+import { shouldDrawShip, thrustFlameLength } from "./render";
+
+describe("shouldDrawShip", () => {
+  it("hides the intact ship after game over", () => {
+    assert.equal(shouldDrawShip("gameover"), false);
+    assert.equal(shouldDrawShip("running"), true);
+    assert.equal(shouldDrawShip("ready"), true);
+    assert.equal(shouldDrawShip("paused"), true);
+  });
+});
 
 describe("thrustFlameLength", () => {
   it("returns a fixed short length when animation is disabled", () => {
