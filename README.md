@@ -39,11 +39,13 @@ Game keys are ignored while focus is on a link, button, or form control, so the 
 | HUD state | Zustand ^5.0.16 |
 | Language | TypeScript 7.0.2 (`tsc` via `@typescript/native`) |
 | Lint types | `typescript` aliased to `@typescript/typescript6` ^6.0.2 so ESLint can load the compiler API |
-| Lint | ESLint ^10.13.0, `eslint-config-next` ^16.4.3 |
+| Lint | ESLint ^10.14.0, `eslint-config-next` ^16.4.3 |
 | Tests | Node.js test runner via `tsx` ^4.23.15 (`src/**/*.test.ts`) |
 | Types | `@types/node` ^26.6.6, `@types/react` ^19.3.0, `@types/react-dom` ^19.3.0 |
 
 `npm run typecheck` runs TypeScript 7. The `typescript` package stays on the TypeScript 6 API because `typescript-eslint` and `eslint-config-next` cannot import TypeScript 7.0. Drop that alias when the linter supports the TypeScript 7 API.
+
+`minimatch` is overridden to 11.0.4 for ESLint and `typescript-eslint` (GHSA-g3hv-75wg-m249). The minimatch 3.1.5 copies inside `eslint-plugin-import`, `eslint-plugin-react`, and `eslint-plugin-jsx-a11y` stay, because those plugins call the minimatch 3 default function and minimatch 11 does not export it.
 
 ## Project structure
 
@@ -60,7 +62,7 @@ src/
 
 ### Prerequisites
 
-- Node.js 22
+- Node.js 24
 - npm
 
 ### Install and run
@@ -104,7 +106,7 @@ npm run lint && npm run typecheck && npm run test && npm run build
 
 Unit tests cover the engine (including a cleared wave and a last-life game over), math, render helpers, audio storage, high score, routes, and security headers. Gameplay smoke on a real browser is still manual.
 
-`.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main`: `npm ci`, lint, typecheck, test, and build on Node 22. The workflow requests `contents: read` and does not use secrets.
+`.github/workflows/ci.yml` runs on pushes and pull requests to `dev` and `main`: `npm ci`, lint, typecheck, test, and build on Node 24. The workflow requests `contents: read` and does not use secrets.
 
 ## Deployment
 

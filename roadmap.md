@@ -13,7 +13,7 @@ Ordered by arcade impact. Each item should stay one change on `dev`.
 5. **Bullet-cap cue.** When fire is held at 4 bullets, show a short “MAX” hint (~300 ms). Reduced motion stays static. No new dependencies.
 6. **Hybrid control hints.** Phones keep touch controls only. Keyboard desktops keep the hint and hide the touch bar. A touchscreen laptop should still show keyboard hints without covering the playfield. Today `ontouchstart` or `maxTouchPoints > 0` hides the keyboard hint.
 7. **Hyperspace during a shield.** Hyperspace is refused while `invincibleUntilMs` is in the future, including the 1.4 s spawn shield. Decide whether that stays or whether hyperspace is always available and only the landing is risky.
-8. **TypeScript 7 linter.** `typescript` is aliased to `@typescript/typescript6` because `typescript-eslint` cannot load TypeScript 7.0. Remove the alias when the linter supports the 7 API (expected around 7.1). Do not point `typescript` itself at 7.0 until then: lint fails.
+8. **TypeScript 7 linter.** `typescript` is aliased to `@typescript/typescript6` because `typescript-eslint` cannot load TypeScript 7.0. Remove the alias when the linter supports the 7 API (expected around 7.1). Do not point `typescript` itself at 7.0 until then: lint fails. Rechecked 2026-11-02: TypeScript stable is 7.0.2, 7.1 is still `7.1.0-beta`, and `typescript-eslint` 8.72.1 is unchanged.
 9. **Browser end-to-end smoke.** Unit tests cover the engine, including a cleared wave and a last-life game over. A scripted browser pass for start, pause, resize, and game over is still manual.
 
 ## Suspected, not confirmed
@@ -23,6 +23,12 @@ Leave these until a reproduction shows the failure. Do not treat them as open bu
 - **Thrust release ramp.** `stopThrust` schedules an exponential gain ramp after `setValueAtTime(thrustGain.gain.value, t)`. If that value is 0, the Web Audio spec says the ramp throws. A headless Chrome check did not throw (the audio clock stayed at 0). Confirm in a browser where `AudioContext.currentTime` advances.
 - **Stuck keys.** There is no `window` `blur` listener. If the browser drops `keyup` when focus leaves the window, rotate or thrust can stick until the next `keyup`. Not reproduced.
 - **First canvas measure.** A 0×0 measure is stored as 1×1. A later resize wraps positions instead of recentering, which could park the ship in a corner. Not observed on the laid-out `h-dvh` page.
+
+## Tooling
+
+Direct dependencies were refreshed on 2026-11-02 and are on the newest published releases. `typescript` stays on `@typescript/typescript6` ^6.0.2 (item 8). `tsc` still comes from `@typescript/native` (`typescript` ^7.0.2). ESLint is ^10.14.0.
+
+`minimatch` is overridden to 11.0.4 for `eslint`, `@eslint/config-array`, and `@typescript-eslint/typescript-estree` (GHSA-g3hv-75wg-m249, patched in 11.0.1). The minimatch 3.1.5 copies inside `eslint-plugin-import`, `eslint-plugin-react`, and `eslint-plugin-jsx-a11y` stay: those plugins call the minimatch 3 default function, and minimatch 9+ removed that export. Forcing 11 there breaks those rules. They are dev-only.
 
 ## Not in this list
 

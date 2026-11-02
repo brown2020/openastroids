@@ -54,7 +54,7 @@ Canvas size follows a `ResizeObserver`. Device pixel ratio is capped at 2.5. `re
 
 ## Out of scope
 
-No accounts, API routes, Server Actions, database, analytics, Firebase, Stripe, or AI providers. No environment variables. Fonts ship through `next/font` (Geist). CI is `.github/workflows/ci.yml` on Node 22 (lint, typecheck, test, production build).
+No accounts, API routes, Server Actions, database, analytics, Firebase, Stripe, or AI providers. No environment variables. Fonts ship through `next/font` (Geist). CI is `.github/workflows/ci.yml` on Node 24 (lint, typecheck, test, production build).
 
 ## Constraints
 
