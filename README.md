@@ -33,15 +33,15 @@ Game keys are ignored while focus is on a link, button, or form control, so the 
 
 | Layer | Package |
 | --- | --- |
-| Framework | Next.js ^16.4.3 (App Router) |
+| Framework | Next.js ^16.4.5 (App Router) |
 | UI | React ^19.3.1, React DOM ^19.3.1 |
-| Styling | Tailwind CSS ^4.3.3, `@tailwindcss/postcss` ^4.3.3, PostCSS ^8.5.32 |
+| Styling | Tailwind CSS ^4.3.4, `@tailwindcss/postcss` ^4.3.4, PostCSS ^8.5.32 |
 | HUD state | Zustand ^5.0.16 |
 | Language | TypeScript 7.0.2 (`tsc` via `@typescript/native`) |
 | Lint types | `typescript` aliased to `@typescript/typescript6` ^6.0.2 so ESLint can load the compiler API |
-| Lint | ESLint ^10.14.0, `eslint-config-next` ^16.4.3 |
+| Lint | ESLint ^10.14.0, `eslint-config-next` ^16.4.5 |
 | Tests | Node.js test runner via `tsx` ^4.23.15 (`src/**/*.test.ts`) |
-| Types | `@types/node` ^26.6.6, `@types/react` ^19.3.0, `@types/react-dom` ^19.3.0 |
+| Types | `@types/node` ^24.19.2 (Node 24), `@types/react` ^19.3.0, `@types/react-dom` ^19.3.0 |
 
 `npm run typecheck` runs TypeScript 7. The `typescript` package stays on the TypeScript 6 API because `typescript-eslint` and `eslint-config-next` cannot import TypeScript 7.0. Drop that alias when the linter supports the TypeScript 7 API.
 

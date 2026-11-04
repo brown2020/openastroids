@@ -26,7 +26,7 @@ Leave these until a reproduction shows the failure. Do not treat them as open bu
 
 ## Tooling
 
-Direct dependencies were refreshed on 2026-11-02 and are on the newest published releases. `typescript` stays on `@typescript/typescript6` ^6.0.2 (item 8). `tsc` still comes from `@typescript/native` (`typescript` ^7.0.2). ESLint is ^10.14.0.
+Direct dependencies were refreshed on 2026-11-04. `typescript` stays on `@typescript/typescript6` ^6.0.2 (item 8). TypeScript 6.0.3 is not published; 7.0.2 is latest stable and still has no compiler API that `typescript-eslint` can load. `tsc` still comes from `@typescript/native` (`typescript` ^7.0.2). `@types/node` stays on ^24.19.2 to match the Node 24 runtime (latest on npm is 26.x). ESLint is ^10.14.0. Next.js and `eslint-config-next` are ^16.4.5. Tailwind CSS and `@tailwindcss/postcss` are ^4.3.4.
 
 `minimatch` is overridden to 11.0.4 for `eslint`, `@eslint/config-array`, and `@typescript-eslint/typescript-estree` (GHSA-g3hv-75wg-m249, patched in 11.0.1). The minimatch 3.1.5 copies inside `eslint-plugin-import`, `eslint-plugin-react`, and `eslint-plugin-jsx-a11y` stay: those plugins call the minimatch 3 default function, and minimatch 9+ removed that export. Forcing 11 there breaks those rules. They are dev-only.
 
